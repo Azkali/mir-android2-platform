@@ -27,6 +27,7 @@ if (MIR_BUILD_PLATFORM_ANDROID)
     gl_context.cpp
     device_quirks.cpp
     real_hwc_wrapper.cpp
+    real_hwc2_wrapper.cpp
     hwc_fallback_gl_renderer.cpp
     ipc_operations.cpp
     hwc_blanking_control.cpp
@@ -46,7 +47,7 @@ if (MIR_BUILD_PLATFORM_ANDROID)
       ${WAYLAND_SERVER_INCLUDE_DIRS}
   )
 
-  target_compile_options(mirplatformgraphicsandroidobjects PRIVATE -fpermissive)
+  target_compile_options(mirplatformgraphicsandroidobjects PRIVATE -fpermissive -Wno-error)
 
   add_library(mirplatformgraphicsandroid SHARED
     $<TARGET_OBJECTS:mirplatformgraphicsandroidobjects>
@@ -67,6 +68,7 @@ if (MIR_BUILD_PLATFORM_ANDROID)
     ${GLESv2_LDFLAGS} ${GLESv2_LIBRARIES}
     ${ANDROID_PROPERTIES_LDFLAGS}
     ${WAYLAND_SERVER_LDFLAGS} ${WAYLAND_SERVER_LIBRARIES}
+    -lhwc2 -lhybris-eglplatformcommon -lsync
   )
 
   set_target_properties(

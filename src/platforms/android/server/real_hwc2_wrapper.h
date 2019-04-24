@@ -16,16 +16,19 @@
  * Authored by: Kevin DuBois <kevin.dubois@canonical.com>
  */
 
-#ifndef MIR_GRAPHICS_ANDROID_REAL_HWC_WRAPPER_H_
-#define MIR_GRAPHICS_ANDROID_REAL_HWC_WRAPPER_H_
+#ifndef MIR_GRAPHICS_ANDROID_REAL_HWC2_WRAPPER_H_
+#define MIR_GRAPHICS_ANDROID_REAL_HWC2_WRAPPER_H_
 
 #include "hwc_wrapper.h"
+#include "display_device.h"
 #include <memory>
 #include <hardware/hwcomposer.h>
+#include <hybris/hwc2/hwc2_compatibility_layer.h>
 
 #include <mutex>
 #include <unordered_map>
 #include <atomic>
+#include <list>
 
 namespace mir
 {
@@ -34,21 +37,28 @@ namespace graphics
 namespace android
 {
 class HwcReport;
-class RealHwcWrapper;
-struct HwcCallbacks
+class RealHwc2Wrapper;
+struct Hwc2Callbacks
 {
-    hwc_procs_t hooks;
-    RealHwcWrapper* self;
+    HWC2EventListener listener;
+    RealHwc2Wrapper* self;
+    hwc2_compat_device_t* hwc2_device;
 };
 
-class RealHwcWrapper : public HwcWrapper
+struct free_delete
+{
+    void operator()(void* x) { free(x); }
+};
+
+typedef std::unique_ptr<hwc2_compat_display_t, free_delete> hwc2_compat_display_ptr;
+typedef std::unique_ptr<HWC2DisplayConfig, free_delete> HWC2DisplayConfig_ptr;
+
+class RealHwc2Wrapper : public HwcWrapper
 {
 public:
-    RealHwcWrapper(
-        //should probably be unique_ptr
-        std::shared_ptr<hwc_composer_device_1> const& hwc_device,
+    RealHwc2Wrapper(
         std::shared_ptr<HwcReport> const& report);
-    ~RealHwcWrapper();
+    ~RealHwc2Wrapper();
 
     void subscribe_to_events(
         void const* subscriber,
@@ -72,12 +82,15 @@ public:
     void set_active_config(DisplayName name, ConfigId id) const override;
 
     void vsync(DisplayName, graphics::Frame::Timestamp) noexcept;
-    void hotplug(DisplayName, bool) noexcept;
+    void hotplug(hwc2_display_t, bool, bool) noexcept;
     void invalidate() noexcept;
 
     bool display_connected(DisplayName) const;
+
+    static int composerSequenceId;
 private:
-    std::shared_ptr<hwc_composer_device_1> const hwc_device;
+    hwc2_compat_device_t* hwc2_device;
+    std::unordered_map<int, hwc2_compat_display_ptr> hwc2_displays;
     std::shared_ptr<HwcReport> const report;
     std::mutex callback_map_lock;
     struct Callbacks
@@ -88,9 +101,12 @@ private:
     };
     std::unordered_map<void const*, Callbacks> callback_map;
     std::atomic<bool> is_plugged[HWC_NUM_DISPLAY_TYPES];
+    std::unordered_map<int, std::vector<hwc2_compat_layer_t*>> display_contents;
+    std::unordered_map<int, int> last_present_fence;
+    std::unordered_map<int, bool> active_displays;
 };
 
 }
 }
 }
-#endif /* MIR_GRAPHICS_ANDROID_REAL_HWC_WRAPPER_H_ */
+#endif /* MIR_GRAPHICS_ANDROID_REAL_HWC2_WRAPPER_H_ */

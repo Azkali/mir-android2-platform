@@ -154,6 +154,8 @@ endforeach(platform)
 if (MIR_BUILD_PLATFORM_ANDROID OR MIR_BUILD_PLATFORM_ANDROID_CAF)
   find_package(AndroidProperties REQUIRED)
   find_package(LibHardware REQUIRED)
+  pkg_check_modules(GRALLOC REQUIRED libgralloc)
+  pkg_check_modules(HYBRIS_EGL_PLATFORM REQUIRED hybris-egl-platform)
 endif()
 
 if (MIR_BUILD_PLATFORM_ANDROID)

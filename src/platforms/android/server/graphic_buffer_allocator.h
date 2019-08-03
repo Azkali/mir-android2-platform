@@ -53,6 +53,7 @@ namespace android
 class Gralloc;
 class DeviceQuirks;
 class CommandStreamSyncFactory;
+class HybrisRegistarDevice;
 
 class GraphicBufferAllocator:
   public graphics::GraphicBufferAllocator,
@@ -81,7 +82,7 @@ public:
         std::function<void()>&& on_release) override;
     void set_ctx(graphics::Display const& output);
 private:
-    const hw_module_t    *hw_module;
+    std::shared_ptr<HybrisRegistarDevice> registar_device;
     std::shared_ptr<Gralloc> alloc_device;
     std::shared_ptr<EGLExtensions> const egl_extensions;
     std::shared_ptr<CommandStreamSyncFactory> const cmdstream_sync_factory;

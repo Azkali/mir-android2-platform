@@ -45,11 +45,6 @@ struct NativeHandleDeleter
     void operator()(const native_handle_t* t)
     {
         module->unregisterBuffer(module.get(), t);
-        for (auto i = 0; i < t->numFds; i++)
-        {
-            close(t->data[i]);
-        }
-        ::operator delete(const_cast<native_handle_t*>(t));
     }
 private:
     const std::shared_ptr<const gralloc_module_t> module;

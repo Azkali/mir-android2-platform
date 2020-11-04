@@ -228,8 +228,8 @@ include_directories(${MIR_GENERATED_INCLUDE_DIRECTORIES})
 add_subdirectory(cmake/)
 
 if (MIR_ENABLE_TESTS)
-  find_package(GtestGmock REQUIRED)
-  include_directories(${GMOCK_INCLUDE_DIR} ${GTEST_INCLUDE_DIR})
+  find_package(GMock REQUIRED)
+  include_directories(${GMOCK_INCLUDE_DIRS} ${GTEST_INCLUDE_DIRS})
   add_subdirectory(tests/)
 
   # There's no nice way to format this. Thanks CMake.

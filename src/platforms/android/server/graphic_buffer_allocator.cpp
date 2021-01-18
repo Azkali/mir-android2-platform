@@ -19,6 +19,7 @@
  *   Marius Gripsgard <marius@ubports.com>
  */
 
+#include <mir/version.h>
 #include "mir/graphics/platform.h"
 #include "mir/graphics/egl_extensions.h"
 #include "mir/graphics/egl_error.h"
@@ -364,18 +365,32 @@ public:
 
     mir::graphics::gl::Program const& shader(mir::graphics::gl::ProgramFactory& cache) const override
     {
-        static std::unique_ptr<mg::gl::Program> shader;
-        if (!shader)
-        {
-            shader = cache.compile_fragment_shader(
-                "",
-                "uniform sampler2D tex;\n"
-                "vec4 sample_to_rgba(in vec2 texcoord)\n"
-                "{\n"
-                "    return texture2D(tex, texcoord);\n"
-                "}\n");
-        }
+        char const* extension_fragment = "";
+        char const* fragment_fragment =
+            "uniform sampler2D tex;\n"
+            "vec4 sample_to_rgba(in vec2 texcoord)\n"
+            "{\n"
+            "    return texture2D(tex, texcoord);\n"
+            "}\n";
+
+        /*
+         * Note that the following change happens in Mir 1.8.0. However, it identifies
+         * itself incorrectly as 1.7.2. Luckily 1.7.2 doesn't exist, so it should be
+         * safe to check for this.
+         */
+#   if MIR_SERVER_VERSION >= MIR_VERSION_NUMBER(1, 7, 2)
+        static int shader_id = 0;
+        return cache.compile_fragment_shader(
+            &shader_id,
+            extension_fragment,
+            fragment_fragment);
+#   else
+        static auto const shader = cache.compile_fragment_shader(
+            extension_fragment,
+            fragment_fragment);
+
         return *shader;
+#   endif
     }
 
     Layout layout() const override

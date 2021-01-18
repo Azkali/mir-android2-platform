@@ -224,13 +224,14 @@ bool mga::HWCLayer::setup_layer(
 
     visible_rect = hwc_layer->displayFrame;
 
-    try {
-      auto native_buffer = mga::to_native_buffer_checked(buffer->native_buffer_handle());
-      needs_commit |= (hwc_layer->handle != native_buffer->handle());
-      hwc_layer->handle = native_buffer->handle();
-    } catch(...) {
-      // This may be wayland, we simply have to ignore them since they cannot
-      // Be downcasted, and should not call any android funcs
+    /*
+     * This buffer might or might not be an Android buffer, but if it is, we'll
+     * have another signal to see if we need to commit or not.
+     */
+    if (auto native_buffer =
+            std::dynamic_pointer_cast<mga::NativeBuffer>(buffer->native_buffer_handle())) {
+        needs_commit |= (hwc_layer->handle != native_buffer->handle());
+        hwc_layer->handle = native_buffer->handle();
     }
 
     return needs_commit;

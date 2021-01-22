@@ -31,6 +31,15 @@ mir_add_wrapped_executable(mir_unit_tests_android
 
 add_dependencies(mir_unit_tests_android GMock)
 
+# Get the GTest version from pkg-config file to let server/test_hwc_fallback_gl_renderer.cpp
+# include GMock fixes for older GMock version conditionally.
+# If the pkg-config file for gtest is not installed, assumed the older version
+# and use the fix.
+pkg_check_modules(GTEST "gtest")
+if (NOT GTEST_FOUND OR "${GTEST_VERSION}" VERSION_LESS "1.9.0")
+  target_compile_definitions(mir_unit_tests_android PRIVATE -DUSE_GMOCK_FIXES)
+endif()
+
 target_link_libraries(
   mir_unit_tests_android
   mirsharedandroid-static

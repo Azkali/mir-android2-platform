@@ -110,6 +110,10 @@ int mga::ServerRenderWindow::driver_requests_info(int key) const
         case NATIVE_WINDOW_IS_VALID:
             // true
             return 1;
+        case NATIVE_WINDOW_MAX_BUFFER_COUNT:
+            // The default maximum count of BufferQueue items.
+            // See android::BufferQueueDefs::NUM_BUFFER_SLOTS.
+            return 64;
         default:
             {
             std::stringstream sstream;

@@ -9,7 +9,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 set(MIR_VERSION_MAJOR 1)
-set(MIR_VERSION_MINOR 1)
+set(MIR_VERSION_MINOR 8)
 set(MIR_VERSION_PATCH 0)
 
 add_definitions(-DMIR_VERSION_MAJOR=${MIR_VERSION_MAJOR})
@@ -228,8 +228,8 @@ include_directories(${MIR_GENERATED_INCLUDE_DIRECTORIES})
 add_subdirectory(cmake/)
 
 if (MIR_ENABLE_TESTS)
-  find_package(GtestGmock REQUIRED)
-  include_directories(${GMOCK_INCLUDE_DIR} ${GTEST_INCLUDE_DIR})
+  find_package(GMock REQUIRED)
+  include_directories(${GMOCK_INCLUDE_DIRS} ${GTEST_INCLUDE_DIRS})
   add_subdirectory(tests/)
 
   # There's no nice way to format this. Thanks CMake.

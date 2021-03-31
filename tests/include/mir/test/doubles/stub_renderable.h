@@ -19,6 +19,8 @@
 #ifndef MIR_TEST_DOUBLES_STUB_RENDERABLE_H_
 #define MIR_TEST_DOUBLES_STUB_RENDERABLE_H_
 
+#include <mir/version.h>
+
 #include "mir/test/doubles/stub_buffer.h"
 #include <mir/graphics/renderable.h>
 #include <memory>
@@ -89,6 +91,12 @@ public:
     {
         return 1;
     }
+#if MIR_SERVER_VERSION >= MIR_VERSION_NUMBER(1, 5, 0)
+    std::experimental::optional<geometry::Rectangle> clip_area() const override
+    {
+        return std::experimental::optional<geometry::Rectangle>();
+    }
+#endif
 
 private:
     std::shared_ptr<graphics::Buffer> make_stub_buffer(geometry::Rectangle const& rect)

@@ -426,9 +426,6 @@ private:
 
 void mga::GraphicBufferAllocator::bind_display(wl_display* display, std::shared_ptr<Executor> wayland_executor)
 {
-    // We need to set libhybris EGL platfrom to wayland here
-    setenv("EGL_PLATFORM", "wayland", 1);
-
     auto context_guard = mir::raii::paired_calls(
       [this]() { ctx->make_current(); },
       [this]() { ctx->release_current(); });
@@ -460,10 +457,6 @@ std::shared_ptr<mg::Buffer> mga::GraphicBufferAllocator::buffer_from_resource(
     std::function<void()>&& on_consumed,
     std::function<void()>&& on_release)
 {
-  // We also reset it here to make sure its always on wayland in the wayland
-  // thread
-  setenv("EGL_PLATFORM", "wayland", 1);
-
   auto context_guard = mir::raii::paired_calls(
       [this]() { ctx->make_current(); },
       [this]() { ctx->release_current(); });

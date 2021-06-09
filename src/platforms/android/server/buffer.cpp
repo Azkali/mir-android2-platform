@@ -17,8 +17,11 @@
  *   Kevin DuBois <kevin.dubois@canonical.com>
  */
 
+#include <mir/version.h>
 #include "mir/graphics/egl_extensions.h"
 #include "mir/graphics/egl_error.h"
+#include "mir/graphics/program.h"
+#include "mir/graphics/program_factory.h"
 #include "native_buffer.h"
 #include "sync_fence.h"
 #include "android_format_conversion-inl.h"
@@ -33,6 +36,16 @@
 namespace mg=mir::graphics;
 namespace mga=mir::graphics::android;
 namespace geom=mir::geometry;
+
+void mga::BindResolverTex::bind()
+{
+    tex_bind();
+}
+
+void mga::BindResolverTexTarget::bind()
+{
+    upload_to_texture();
+}
 
 mga::Buffer::Buffer(gralloc_module_t const* hw_module,
     std::shared_ptr<NativeBuffer> const& buffer_handle,
@@ -78,7 +91,7 @@ void mga::Buffer::gl_bind_to_texture()
     secure_for_render(lk);
 }
 
-void mga::Buffer::bind()
+void mga::Buffer::upload_to_texture()
 {
     std::unique_lock<std::mutex> lk(content_lock);
     bind(lk);
@@ -86,7 +99,7 @@ void mga::Buffer::bind()
 
 void mga::Buffer::bind_for_write()
 {
-    bind();
+    upload_to_texture();
 }
 
 void mga::Buffer::bind(std::unique_lock<std::mutex> const&)
@@ -153,7 +166,7 @@ void mga::Buffer::write(unsigned char const* data, size_t data_size)
     std::unique_lock<std::mutex> lk(content_lock);
 
     native_buffer->ensure_available_for(mga::BufferAccess::write);
-    
+
     auto bpp = MIR_BYTES_PER_PIXEL(pixel_format());
     size_t buffer_size_bytes = size().height.as_int() * size().width.as_int() * bpp;
     if (buffer_size_bytes != data_size)
@@ -177,7 +190,7 @@ void mga::Buffer::write(unsigned char const* data, size_t data_size)
         int line_offset_in_source = bpp*width*i;
         memcpy(vaddr + line_offset_in_buffer, data + line_offset_in_source, width * bpp);
     }
-    
+
     hw_module->unlock(hw_module, native_buffer->handle());
 }
 
@@ -225,3 +238,63 @@ void mga::Buffer::commit()
 {
     // post rendering step - only necessary when buffer is backed by user memory (c.f. to ShmBuffer)
 }
+
+mg::gl::Program const& mga::Buffer::shader(
+    mg::gl::ProgramFactory& cache) const
+{
+    char const* extension_fragment = "";
+    char const* fragment_fragment =
+        "uniform sampler2D tex;\n"
+        "vec4 sample_to_rgba(in vec2 texcoord)\n"
+        "{\n"
+        "    return texture2D(tex, texcoord);\n"
+        "}\n";
+
+    /*
+     * Note that the following change happens in Mir 1.8.0. However, it identifies
+     * itself incorrectly as 1.7.2. Luckily 1.7.2 doesn't exist, so it should be
+     * safe to check for this.
+     */
+#if MIR_SERVER_VERSION >= MIR_VERSION_NUMBER(1, 7, 2)
+    static int shader_id = 0;
+    return cache.compile_fragment_shader(
+        &shader_id,
+        extension_fragment,
+        fragment_fragment);
+#else
+    static auto const program = cache.compile_fragment_shader(
+        extension_fragment,
+        fragment_fragment);
+
+    return *program;
+#endif
+}
+
+mg::gl::Texture::Layout mga::Buffer::layout() const
+{
+    return Layout::GL;
+}
+
+void mga::Buffer::add_syncpoint()
+{
+
+}
+
+void mga::Buffer::tex_bind()
+{
+    bool const needs_initialisation = tex_id == 0;
+    if (needs_initialisation)
+    {
+        glGenTextures(1, &tex_id);
+    }
+    glBindTexture(GL_TEXTURE_2D, tex_id);
+    if (needs_initialisation)
+    {
+        // The ShmBuffer *should* be immutable, so we can just upload once.
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        gl_bind_to_texture();
+    }
+  }

@@ -182,6 +182,8 @@ pkg_check_modules(MIRCORE REQUIRED mircore)
 pkg_check_modules(MIRPLATFORM REQUIRED mirplatform)
 pkg_check_modules(MIRGLRENDERER REQUIRED mir-renderer-gl-dev)
 pkg_check_modules(MIRRENDERER REQUIRED mirrenderer)
+pkg_check_modules(MIRSERVER REQUIRED mirserver)
+pkg_check_modules(WAYLAND_SERVER REQUIRED wayland-server)
 
 include_directories(
     ${PROJECT_SOURCE_DIR}
@@ -189,7 +191,9 @@ include_directories(
     ${MIRPLATFORM_INCLUDE_DIRS}
     ${MIRRENDERER_INCLUDE_DIRS}
     ${MIRGLRENDERER_INCLUDE_DIRS}
-    ${MIRCLIENT_INCLUDE_DIRS})
+    ${MIRCLIENT_INCLUDE_DIRS}
+    ${MIRSERVER_INCLUDE_DIRS}
+)
 
 include_directories (SYSTEM ${GLESv2_INCLUDE_DIRS})
 include_directories (SYSTEM ${EGL_INCLUDE_DIRS})

@@ -71,7 +71,7 @@ target_link_libraries(
 
 set_target_properties(
   mirplatformgraphicsandroid PROPERTIES
-  OUTPUT_NAME graphics-android
+  OUTPUT_NAME graphics-android2
   LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/server-modules
   PREFIX ""
   SUFFIX ".so.${MIR_SERVER_GRAPHICS_PLATFORM_ABI}"

@@ -408,7 +408,7 @@ mir::ModuleProperties const description = {
 #ifdef ANDROID_CAF
     "mir:android-caf",
 #else
-    "mir:android",
+    "ubports:android2",
 #endif
     MIR_VERSION_MAJOR,
     MIR_VERSION_MINOR,

@@ -21,7 +21,7 @@ add_library(mirclientplatformandroid MODULE
 
 set_target_properties(
   mirclientplatformandroid PROPERTIES
-  OUTPUT_NAME android
+  OUTPUT_NAME android2
   LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/client-modules
   PREFIX ""
   SUFFIX ".so.${MIR_CLIENT_PLATFORM_ABI}"

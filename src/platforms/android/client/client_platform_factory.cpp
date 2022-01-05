@@ -54,6 +54,6 @@ is_appropriate_module(mcl::ClientContext* context)
 #ifdef ANDROID_CAF
     return (strncmp("mir:android-caf", server_graphics_module.name, strlen("mir:android-caf")) == 0);
 #else
-    return (strncmp("mir:android", server_graphics_module.name, strlen("mir:android")) == 0);
+    return (strncmp("ubports:android2", server_graphics_module.name, strlen("ubports:android2")) == 0);
 #endif
 }

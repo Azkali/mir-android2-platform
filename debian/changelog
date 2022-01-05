@@ -1,3 +1,9 @@
+mir-android2-platform (1.8.0) UNRELEASED; urgency=medium
+
+  * Rename the package to mir-android2-platform
+
+ -- Ratchanan Srirattanamet <ratchanan@ubports.com>  Tue, 28 Dec 2021 15:38:13 +0000
+
 mir-android-platform (0.31.2) xenial; urgency=medium
 
   [Andreas Pokorny]

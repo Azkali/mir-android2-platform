@@ -20,6 +20,7 @@
 #include "platform.h"
 
 #include "graphic_buffer_allocator.h"
+#include "mir/graphics/platform.h"
 #include "resource_factory.h"
 #include "display.h"
 #include "hal_component_factory.h"
@@ -40,6 +41,7 @@
 #include "mir/libname.h"
 
 #include <boost/throw_exception.hpp>
+#include <hybris/properties/properties.h>
 #include <stdexcept>
 #include <mutex>
 #include <string.h>
@@ -56,31 +58,6 @@ char const* const hwc_overlay_opt = "disable-overlays";
 char const* const log_opt_value = "log";
 char const* const off_opt_value = "off";
 char const* const fb_native_window_report_opt = "report-fb-native-window";
-
-bool force_caf_version() {
-    char value[PROP_VALUE_MAX] = "";
-    return 0 != ::property_get("ro.build.qti_bsp.abi", value, nullptr);
-}
-
-#ifdef ANDROID_CAF
-bool force_vanilla_version() {
-    char value[PROP_VALUE_MAX] = "";
-    return 0 != ::property_get("ro.build.vanilla.abi", value, nullptr);
-}
-
-std::tuple<int, int, int> get_android_version()
-{
-    char value[PROP_VALUE_MAX] = "";
-    char const key[] = "ro.build.version.release";
-    ::property_get(key, value, "4.1.1");
-
-    std::tuple<int, int, int> ret{0, 0, 0};
-    if (sscanf(value, "%d.%d.%d", &std::get<0>(ret), &std::get<1>(ret), &std::get<2>(ret)) == 3)
-        return ret;
-    else
-        return std::make_tuple(4, 1, 1);
-}
-#endif
 
 std::shared_ptr<mga::HwcReport> make_hwc_report(mo::Option const& options)
 {
@@ -375,31 +352,27 @@ void add_graphics_platform_options(
     mga::DeviceQuirks::add_options(config);
 }
 
+static int get_android_api_level()
+{
+    char propval[PROP_VALUE_MAX];
+
+    if (::property_get("ro.build.version.sdk", propval, "") < 0)
+        return -1;
+
+    return atoi(propval);
+}
+
 mg::PlatformPriority probe_graphics_platform(std::shared_ptr<mir::ConsoleServices> const&,
                                              mo::ProgramOption const& /*options*/)
 {
     mir::assert_entry_point_signature<mg::PlatformProbe>(&probe_graphics_platform);
-    int err;
-    hw_module_t const* hw_module;
 
-    err = hw_get_module(HWC_HARDWARE_MODULE_ID, &hw_module);
-    // Hack for Treble HWComposer 2 devices where loading HAL fails
-    if (err < 0) return mg::PlatformPriority::best;
-
-#ifdef ANDROID_CAF
-    // LAZY HACK to check for qcom hardware
-    if (force_vanilla_version())
-	return mg::PlatformPriority::unsupported;
-    auto version = get_android_version();
-    if (force_caf_version() ||
-        (strcmp(hw_module->author, "CodeAurora Forum") == 0 && std::get<0>(version) >= 7))
-        return static_cast<mg::PlatformPriority>(mg::PlatformPriority::best + 1);
-    return mg::PlatformPriority::unsupported;
-#else
-    if (force_caf_version())
-	return mg::PlatformPriority::unsupported;
-    return mg::PlatformPriority::best;
-#endif
+    if (get_android_api_level() >= 26) { // Android 8 = API level 26.
+        // Trumps the old mir-android-platform's confidence.
+        return static_cast<mg::PlatformPriority>(mg::PlatformPriority::best + 16);
+    } else {
+        return mg::PlatformPriority::unsupported;
+    }
 }
 
 namespace
@@ -408,7 +381,7 @@ mir::ModuleProperties const description = {
 #ifdef ANDROID_CAF
     "mir:android-caf",
 #else
-    "mir:android",
+    "ubports:android2",
 #endif
     MIR_VERSION_MAJOR,
     MIR_VERSION_MINOR,

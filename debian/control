@@ -1,4 +1,4 @@
-Source: mir-android-platform
+Source: mir-android2-platform
 Section: x11
 Priority: optional
 Maintainer: Andreas Pokorny <andreas.pokorny@gmail.com>
@@ -48,7 +48,7 @@ Homepage: https://launchpad.net/mir-android-platform
 # just go ahead. ~mir-team will notice and sync up the code again.
 Vcs-Git: https://code.launchpad.net/mir-android-platform
 
-Package: mir-platform-graphics-android15
+Package: mir-platform-graphics-android2-15
 Section: libs
 Architecture: i386 amd64 armhf arm64
 Multi-Arch: same
@@ -62,7 +62,7 @@ Description: Display server for Ubuntu - platform library for Android
  Contains the shared libraries required for the Mir server to interact with
  the hardware platform using the Android drivers.
 
-Package: mir-client-platform-android5
+Package: mir-client-platform-android2-5
 Section: libs
 Architecture: i386 amd64 armhf arm64
 Multi-Arch: same
@@ -76,14 +76,14 @@ Description: Display server for Ubuntu - client platform library for Android
  Contains the shared libraries required for the Mir clients to interact with
  the underlying hardware platform using the Android drivers.
 
-Package: mir-graphics-drivers-android
+Package: mir-graphics-drivers-android2
 Section: libs
 Architecture: i386 amd64 armhf arm64
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends},
-         mir-platform-graphics-android15,
-         mir-client-platform-android5,
+         mir-platform-graphics-android2-15,
+         mir-client-platform-android2-5,
          mir-platform-input-evdev7,
 Description: Display server for Ubuntu - android driver metapackage
  Mir is a display server running on linux systems, with a focus on efficiency,

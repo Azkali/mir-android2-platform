@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.5)
 cmake_policy(SET CMP0015 NEW)
 cmake_policy(SET CMP0022 NEW)
 
-project(MirAndroidPlatform)
+project(MirAndroid2Platform)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -134,37 +134,11 @@ include_directories (SYSTEM
   ${Boost_INCLUDE_DIRS}
 )
 
-set(
-  MIR_PLATFORM
-  android;android-caf
-  CACHE
-  STRING
-  "a list of graphics backends to build (options are 'android' or android-caf)"
-)
-
-foreach(platform IN LISTS MIR_PLATFORM)
-  if (platform STREQUAL "android")
-    set(MIR_BUILD_PLATFORM_ANDROID TRUE)
-  endif()
-  if (platform STREQUAL "android-caf")
-     set(MIR_BUILD_PLATFORM_ANDROID_CAF TRUE)
-  endif()
-endforeach(platform)
-
-if (MIR_BUILD_PLATFORM_ANDROID OR MIR_BUILD_PLATFORM_ANDROID_CAF)
-  find_package(AndroidProperties REQUIRED)
-  find_package(LibHardware REQUIRED)
-  pkg_check_modules(GRALLOC REQUIRED libgralloc)
-  pkg_check_modules(HYBRIS_EGL_PLATFORM REQUIRED hybris-egl-platform)
-endif()
-
-if (MIR_BUILD_PLATFORM_ANDROID)
-  pkg_search_module(ANDROID_HEADERS REQUIRED android-headers-28)
-endif()
-
-if (MIR_BUILD_PLATFORM_ANDROID_CAF)
-  pkg_search_module(ANDROID_CAF_HEADERS REQUIRED android-headers-24-caf)
-endif()
+find_package(AndroidProperties REQUIRED)
+find_package(LibHardware REQUIRED)
+pkg_check_modules(GRALLOC REQUIRED libgralloc)
+pkg_check_modules(HYBRIS_EGL_PLATFORM REQUIRED hybris-egl-platform)
+pkg_search_module(ANDROID_HEADERS REQUIRED android-headers-28)
 
 option(MIR_ENABLE_TESTS "Build tests" ON)
 

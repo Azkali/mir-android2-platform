@@ -31,12 +31,11 @@ enum DisplayIds
     max_displays
 };
 
-mg::DisplayConfigurationOutput make_virtual_config()
+mg::DisplayConfigurationOutput make_virtual_config(const MirPixelFormat display_format)
 {
     auto const name = mga::DisplayName::virt;
     double const vrefresh_hz{60.0};
     geom::Size const mm_size{660, 370};
-    auto const display_format = mir_pixel_format_argb_8888;
     geom::Point const origin{0,0};
     auto const external_mode = mir_power_mode_off;
     size_t const preferred_format_index{0};
@@ -84,7 +83,7 @@ mga::DisplayConfiguration::DisplayConfiguration(
     MirPowerMode external_mode) :
     DisplayConfiguration(primary_config, primary_mode,
                          external_config, external_mode,
-                         make_virtual_config())
+                         make_virtual_config(primary_config.current_format))
 {
 }
 

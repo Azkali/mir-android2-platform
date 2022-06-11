@@ -40,7 +40,7 @@ class BufferRegistrar
 public:
     virtual ~BufferRegistrar() = default;
     virtual std::shared_ptr<graphics::android::NativeBuffer> register_buffer(
-        MirBufferPackage const& package,
+        MirBufferPackage& package,
         MirPixelFormat pf) const = 0;
     virtual std::shared_ptr<char> secure_for_cpu(
         std::shared_ptr<graphics::android::NativeBuffer> const& handle,

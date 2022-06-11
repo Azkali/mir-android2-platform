@@ -87,7 +87,7 @@ std::shared_ptr<mga::NativeBuffer> create_native_buffer(
 }
 }
 std::shared_ptr<mga::NativeBuffer> mcla::GrallocRegistrar::register_buffer(
-    MirBufferPackage const& package,
+    MirBufferPackage& package,
     MirPixelFormat pf) const
 {
     auto fence_present = package.flags & mir_buffer_flag_fenced;
@@ -128,8 +128,27 @@ std::shared_ptr<mga::NativeBuffer> mcla::GrallocRegistrar::register_buffer(
     }
     if (handle != out_handle)
     {
+        native_handle_close(handle);
         ::operator delete(handle);
         handle = const_cast<native_handle_t*>(out_handle);
+
+        // replace handle in creation package as it is going to be stored and reused
+        if (fence_present)
+        {
+            package.fd_items = handle->numFds + 1;
+            for (auto i = 1; i < handle->numFds; i++)
+                package.fd[i] = handle->data[i - 1];
+        }
+        else
+        {
+            package.fd_items = handle->numFds;
+            for (auto i = 0; i < handle->numFds; i++)
+                package.fd[i] = handle->data[i];
+        }
+
+        package.data_items = handle->numInts;
+        for (auto i = 0; i < handle->numInts; i++)
+            package.data[i] = handle->data[handle->numFds+i];
     }
 
     NativeHandleDeleter del(hybris_gralloc);

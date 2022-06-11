@@ -36,7 +36,7 @@ public:
     GrallocRegistrar(std::shared_ptr<graphics::android::HybrisGralloc> const& hybris_gralloc);
 
     std::shared_ptr<graphics::android::NativeBuffer> register_buffer(
-        MirBufferPackage const& package,
+        MirBufferPackage& package,
         MirPixelFormat pf) const;
     std::shared_ptr<char> secure_for_cpu(
         std::shared_ptr<graphics::android::NativeBuffer> const& handle,

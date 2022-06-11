@@ -21,7 +21,7 @@
 #define MIR_CLIENT_ANDROID_GRALLOC_REGISTRAR_H_
 
 #include "buffer_registrar.h"
-#include <hardware/gralloc.h>
+#include "hybris_gralloc.h"
 
 namespace mir
 {
@@ -33,7 +33,7 @@ namespace android
 class GrallocRegistrar : public BufferRegistrar
 {
 public:
-    GrallocRegistrar(std::shared_ptr<const gralloc_module_t> const& gralloc_dev);
+    GrallocRegistrar(std::shared_ptr<graphics::android::HybrisGralloc> const& hybris_gralloc);
 
     std::shared_ptr<graphics::android::NativeBuffer> register_buffer(
         MirBufferPackage const& package,
@@ -43,7 +43,7 @@ public:
         geometry::Rectangle const);
 
 private:
-    std::shared_ptr<const gralloc_module_t> gralloc_module;
+    std::shared_ptr<graphics::android::HybrisGralloc> hybris_gralloc;
 };
 
 }

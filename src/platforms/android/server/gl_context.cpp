@@ -23,6 +23,7 @@
 #include "mir/graphics/gl_config.h"
 #include "mir/graphics/egl_error.h"
 
+#include <deviceinfo/deviceinfo.h>
 #include <algorithm>
 #include <boost/throw_exception.hpp>
 #include <stdexcept>
@@ -127,6 +128,15 @@ EGLConfig select_egl_config_with_any_format(
 
     return the_config;
 }
+
+static bool does_partial_updates()
+{
+    DeviceInfo device_info;
+    std::string partial_updates = device_info.get("MirAndroidPlatformServerPartialUpdates", "0");
+    if (partial_updates == "true" || partial_updates == "1" || partial_updates == "yes")
+        return true;
+    return false;
+}
 }
 
 void mga::GLContext::make_current(EGLSurface egl_surface) const
@@ -225,6 +235,8 @@ mga::FramebufferGLContext::FramebufferGLContext(
        egl_surface{egl_display,
                    eglCreateWindowSurface(egl_display, egl_config, native_window.get(), NULL)}
 {
+    const EGLint behavior = does_partial_updates() ? EGL_BUFFER_PRESERVED : EGL_BUFFER_DESTROYED;
+    eglSurfaceAttrib(egl_display, egl_surface, EGL_SWAP_BEHAVIOR, behavior);
 }
 
 void mga::FramebufferGLContext::swap_buffers() const

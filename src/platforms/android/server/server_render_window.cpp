@@ -46,12 +46,17 @@ mga::ServerRenderWindow::ServerRenderWindow(
 {
 }
 
-mga::NativeBuffer* mga::ServerRenderWindow::driver_requests_buffer()
+std::shared_ptr<mga::NativeBuffer> mga::ServerRenderWindow::driver_requests_buffer(int fence)
 {
     auto buffer = fb_bundle->buffer_for_render();
     auto handle = mga::to_native_buffer_checked(buffer->native_buffer_handle());
+    if (fence >= 0)
+    {
+        handle->reset_fence();
+        handle->update_usage(fence, mga::BufferAccess::write);
+    }
     resource_cache->store_buffer(buffer, handle);
-    return handle.get();
+    return handle;
 }
 
 void mga::ServerRenderWindow::driver_returns_buffer(ANativeWindowBuffer* buffer, int fence_fd)
@@ -66,12 +71,28 @@ void mga::ServerRenderWindow::driver_returns_buffer(ANativeWindowBuffer* buffer,
     resource_cache->retrieve_buffer(buffer);
 }
 
+void mga::ServerRenderWindow::driver_cancels_buffer(ANativeWindowBuffer*, int)
+{
+}
+
+void mga::ServerRenderWindow::lock_buffer(ANativeWindowBuffer*)
+{
+}
+
 void mga::ServerRenderWindow::dispatch_driver_request_format(int request_format)
 {
     format = request_format;
 }
 
 void mga::ServerRenderWindow::dispatch_driver_request_buffer_size(geometry::Size)
+{
+}
+
+void mga::ServerRenderWindow::dispatch_driver_request_damage(geometry::Rectangles)
+{
+}
+
+void mga::ServerRenderWindow::dispatch_driver_usage_bits(uint64_t usage)
 {
 }
 
@@ -123,8 +144,10 @@ int mga::ServerRenderWindow::driver_requests_info(int key) const
     }
 }
 
-void mga::ServerRenderWindow::sync_to_display(bool)
+void mga::ServerRenderWindow::sync_to_display(bool should_sync)
 {
+    EGLDisplay dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+    eglSwapInterval(dpy, should_sync ? 1 : 0);
 }
 
 void mga::ServerRenderWindow::dispatch_driver_request_buffer_count(unsigned int)

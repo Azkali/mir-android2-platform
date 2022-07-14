@@ -234,6 +234,7 @@ bool mga::HWCLayer::setup_layer(
         hwc_layer->handle = native_buffer->handle();
     }
 
+    layer_type = type;
     return needs_commit;
 }
 
@@ -248,4 +249,9 @@ void mga::HWCLayer::set_acquirefence()
         auto native_buffer = mga::to_native_buffer_checked(associated_buffer->native_buffer_handle());
         hwc_layer->acquireFenceFd = native_buffer->copy_fence();
     }
+}
+
+mga::LayerType mga::HWCLayer::type()
+{
+    return layer_type;
 }

@@ -19,6 +19,7 @@
 #ifndef MIR_GRAPHICS_ANDROID_DEVICE_QUIRKS_H_
 #define MIR_GRAPHICS_ANDROID_DEVICE_QUIRKS_H_
 
+#include <deviceinfo/deviceinfo.h>
 #include <hybris/properties/properties.h>
 #include <string>
 
@@ -81,6 +82,7 @@ private:
     DeviceQuirks & operator=(DeviceQuirks const&) = delete;
     std::string const device_name;
     GPUInfo const gpu_info;
+    DeviceInfo device_info;
 
     unsigned int const num_framebuffers_;
     bool const gralloc_cannot_be_closed_safely_;

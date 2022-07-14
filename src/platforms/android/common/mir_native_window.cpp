@@ -54,6 +54,10 @@ static void incRef(android_native_base_t*)
 {
 }
 
+static void decRef(android_native_base_t*)
+{
+}
+
 int query_static(const ANativeWindow* anw, int key, int* value)
 {
     auto self = static_cast<const mga::MirNativeWindow*>(anw);
@@ -105,12 +109,11 @@ int setSwapInterval_static (struct ANativeWindow* window, int interval)
     return self->setSwapInterval(interval);
 }
 
-/* lockBuffer, and cancelBuffer don't seem to being called by the driver. for now just return without calling into MirNativeWindow */
-
-int lockBuffer_static(struct ANativeWindow* /*window*/,
-                      struct ANativeWindowBuffer* /*buffer*/)
+int lockBuffer_static(struct ANativeWindow* window,
+                      struct ANativeWindowBuffer* buffer)
 {
-    return 0;
+    auto self = static_cast<mga::MirNativeWindow*>(window);
+    return self->lockBuffer(buffer);
 }
 
 int cancelBuffer_deprecated_static(struct ANativeWindow* window,
@@ -147,7 +150,7 @@ mga::MirNativeWindow::MirNativeWindow(
     ANativeWindow::cancelBuffer = &cancelBuffer_static;
 
     ANativeWindow::common.incRef = &incRef;
-    ANativeWindow::common.decRef = &incRef;
+    ANativeWindow::common.decRef = &decRef;
 
     const_cast<int&>(ANativeWindow::minSwapInterval) = 0;
     const_cast<int&>(ANativeWindow::maxSwapInterval) = 1;
@@ -169,20 +172,11 @@ catch (std::exception const& e)
 int mga::MirNativeWindow::dequeueBuffer(struct ANativeWindowBuffer** buffer_to_driver, int* fence_fd)
 try
 {
-    if (cancelled_buffers.size() != 0)
-    {
-        *buffer_to_driver = cancelled_buffers.back();
-        cancelled_buffers.pop_back();
-        *fence_fd = -1; //no fence associated with cancelled buffers
-    }
-    else
-    {
-        auto buffer = driver_interpreter->driver_requests_buffer();
+    auto buffer = driver_interpreter->driver_requests_buffer(*fence_fd);
 
-        //EGL driver is responsible for closing this native handle
-        *fence_fd = buffer->copy_fence();
-        *buffer_to_driver = buffer->anwb();
-    }
+    //EGL driver is responsible for closing this native handle
+    *fence_fd = buffer->copy_fence();
+    *buffer_to_driver = buffer->anwb();
 
     report->buffer_event(mga::BufferEvent::Dequeue, this, *buffer_to_driver, *fence_fd);
     return 0;
@@ -196,17 +190,10 @@ catch (std::exception const& e)
 int mga::MirNativeWindow::dequeueBufferAndWait(struct ANativeWindowBuffer** buffer_to_driver)
 try
 {
-    if (cancelled_buffers.size() != 0)
-    {
-        *buffer_to_driver = cancelled_buffers.back();
-        cancelled_buffers.pop_back();
-    }
-    else
-    {
-        auto buffer = driver_interpreter->driver_requests_buffer();
-        *buffer_to_driver = buffer->anwb();
-        buffer->ensure_available_for(mga::BufferAccess::write);
-    }
+    auto buffer = driver_interpreter->driver_requests_buffer(-1);
+    *buffer_to_driver = buffer->anwb();
+    buffer->ensure_available_for(mga::BufferAccess::write);
+
     report->buffer_event(mga::BufferEvent::Dequeue, this, *buffer_to_driver);
     return 0;
 }
@@ -246,10 +233,7 @@ int mga::MirNativeWindow::cancelBuffer(struct ANativeWindowBuffer* buffer, int f
 try
 {
     report->buffer_event(mga::BufferEvent::Cancel, this, buffer, fence);
-    mga::SyncFence sync_fence(sync_ops, mir::Fd(fence));
-    sync_fence.wait();
-
-    cancelled_buffers.push_back(buffer);
+    driver_interpreter->driver_cancels_buffer(buffer, fence);
     return 0;
 }
 catch (std::exception const& e)
@@ -262,7 +246,19 @@ int mga::MirNativeWindow::cancelBufferDeprecated(struct ANativeWindowBuffer* buf
 try
 {
     report->buffer_event(mga::BufferEvent::Cancel, this, buffer);
-    cancelled_buffers.push_back(buffer);
+    driver_interpreter->driver_cancels_buffer(buffer, -1);
+    return 0;
+}
+catch (std::exception const& e)
+{
+    MIR_LOG_DRIVER_BOUNDARY_EXCEPTION(e);
+    return -1;
+}
+
+int mga::MirNativeWindow::lockBuffer(struct ANativeWindowBuffer* buffer)
+try
+{
+    driver_interpreter->lock_buffer(buffer);
     return 0;
 }
 catch (std::exception const& e)
@@ -312,6 +308,33 @@ try
             auto count = va_arg(args, int);
             driver_interpreter->dispatch_driver_request_buffer_count(count);
             report->perform_event(this, key, {count});
+            break;
+        }
+        case NATIVE_WINDOW_SET_SURFACE_DAMAGE:
+        {
+            auto rects = va_arg(args, const android_native_rect_t*);
+            auto numRects = va_arg(args, size_t);
+            geometry::Rectangles damage_areas;
+            for (size_t i = 0; i < numRects; i++)
+            {
+                struct android_native_rect_t rect = rects[i];
+                damage_areas.add({{rect.top, rect.left}, {rect.right - rect.left, rect.bottom - rect.top}});
+            }
+            driver_interpreter->dispatch_driver_request_damage(damage_areas);
+            break;
+        }
+        case NATIVE_WINDOW_SET_USAGE:
+        {
+            auto usage = va_arg(args, int32_t);
+            va_end(args);
+            driver_interpreter->dispatch_driver_usage_bits(static_cast<uint64_t>(usage));
+            break;
+        }
+        case NATIVE_WINDOW_SET_USAGE64:
+        {
+            auto usage = va_arg(args, int64_t);
+            va_end(args);
+            driver_interpreter->dispatch_driver_usage_bits(usage);
             break;
         }
         default:

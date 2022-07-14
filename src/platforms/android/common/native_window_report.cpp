@@ -54,6 +54,8 @@ std::ostream& operator<<(std::ostream& out, NativeQueryKey key)
         CASE_KEY(NATIVE_WINDOW_STICKY_TRANSFORM)
         CASE_KEY(NATIVE_WINDOW_DEFAULT_DATASPACE)
         CASE_KEY(NATIVE_WINDOW_BUFFER_AGE)
+        CASE_KEY(NATIVE_WINDOW_IS_VALID)
+        CASE_KEY(NATIVE_WINDOW_MAX_BUFFER_COUNT)
         default: return out << "unknown query key: " << key.key;
     }
 }
@@ -83,6 +85,7 @@ std::ostream& operator<<(std::ostream& out, NativePerformKey key)
         CASE_KEY(NATIVE_WINDOW_SET_SIDEBAND_STREAM)
         CASE_KEY(NATIVE_WINDOW_SET_BUFFERS_DATASPACE)
         CASE_KEY(NATIVE_WINDOW_SET_SURFACE_DAMAGE)
+        CASE_KEY(NATIVE_WINDOW_SET_USAGE64)
         default: return out << "unknown perform key: " << key.key;
     }
 }

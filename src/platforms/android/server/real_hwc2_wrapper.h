@@ -104,6 +104,7 @@ private:
     std::unordered_map<int, std::vector<hwc2_compat_layer_t*>> display_contents;
     std::unordered_map<int, int> last_present_fence;
     std::unordered_map<int, bool> active_displays;
+    bool avoid_backpressure;
 };
 
 }

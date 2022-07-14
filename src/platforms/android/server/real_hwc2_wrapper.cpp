@@ -28,6 +28,7 @@
 #include <sstream>
 #include <algorithm>
 #include <sync/sync.h>
+#include <deviceinfo/deviceinfo.h>
 
 #define MIR_LOG_COMPONENT "android/server"
 #include "mir/log.h"
@@ -37,6 +38,7 @@ namespace mga=mir::graphics::android;
 
 namespace
 {
+
 static inline const char* getErrorName(hwc2_error_t error) {
     switch (error) {
         case HWC2_ERROR_NONE: return "None";
@@ -74,21 +76,30 @@ mga::DisplayName display_name(int raw_name)
 //callbacks are not called after the hwc module is closed. However, some badly synchronized
 //drivers continue to call the hooks for a short period after we call close(). (LP: 1364637)
 static std::mutex callback_lock;
+
 static void refresh_hook(HWC2EventListener* listener, int32_t sequenceId, hwc2_display_t display)
 {
-    // mga::Hwc2Callbacks const* callbacks{nullptr};
-    // std::unique_lock<std::mutex> lk(callback_lock);
-    // if ((callbacks = reinterpret_cast<mga::Hwc2Callbacks const*>(listener)) && callbacks->self)
-    //     callbacks->self->invalidate();
+    if (mga::RealHwc2Wrapper::composerSequenceId != sequenceId)
+        return;
+
+    mga::Hwc2Callbacks const* callbacks{nullptr};
+    if ((callbacks = reinterpret_cast<mga::Hwc2Callbacks const*>(listener)) && callbacks->self)
+    {
+        std::unique_lock<std::mutex> lk(callback_lock);
+        callbacks->self->invalidate();
+    }
 }
 
 static void vsync_hook(HWC2EventListener* listener, int32_t sequenceId, hwc2_display_t display,
     int64_t timestamp)
 {
+    if (mga::RealHwc2Wrapper::composerSequenceId != sequenceId)
+        return;
+
     mga::Hwc2Callbacks const* callbacks{nullptr};
-    std::unique_lock<std::mutex> lk(callback_lock);
     if ((callbacks = reinterpret_cast<mga::Hwc2Callbacks const*>(listener)) && callbacks->self)
     {
+        std::unique_lock<std::mutex> lk(callback_lock);
         // hwcomposer.h says the clock used is CLOCK_MONOTONIC, and testing
         // on various devices confirms this is the case...
         mg::Frame::Timestamp hwc_time{CLOCK_MONOTONIC,
@@ -100,6 +111,9 @@ static void vsync_hook(HWC2EventListener* listener, int32_t sequenceId, hwc2_dis
 static void hotplug_hook(HWC2EventListener* listener, int32_t sequenceId,
     hwc2_display_t display, bool connected, bool primaryDisplay)
 {
+    if (mga::RealHwc2Wrapper::composerSequenceId != sequenceId)
+        return;
+
     mga::Hwc2Callbacks const* callbacks{nullptr};
     std::unique_lock<std::mutex> lk(callback_lock);
 
@@ -129,13 +143,20 @@ static mga::HWC2DisplayConfig_ptr get_active_config(
         hwc2_compat_display_get_active_config(hwc2_display.get()));
 }
 
+static bool has_backpressure_property_enabled()
+{
+    DeviceInfo device_info;
+    auto const backpressure_val = device_info.get("MirAndroidPlatformServerBackpressure", "false");
+    return (backpressure_val == "true" || backpressure_val == "1" || backpressure_val == "yes");
+}
 }
 
 int mga::RealHwc2Wrapper::composerSequenceId = 0;
 
 mga::RealHwc2Wrapper::RealHwc2Wrapper(
     std::shared_ptr<mga::HwcReport> const& report) :
-    report(report)
+    report(report),
+    avoid_backpressure(!has_backpressure_property_enabled())
 {
     std::unique_lock<std::mutex> lk(callback_lock);
 
@@ -152,7 +173,7 @@ mga::RealHwc2Wrapper::RealHwc2Wrapper(
 
     lk.unlock();
     hwc2_compat_device_register_callback(hwc2_device, reinterpret_cast<HWC2EventListener*>(&hwc_callbacks),
-        mga::RealHwc2Wrapper::composerSequenceId++);
+        ++mga::RealHwc2Wrapper::composerSequenceId);
     lk.lock();
 }
 
@@ -196,7 +217,6 @@ void mga::RealHwc2Wrapper::prepare(
                 hwc2_compat_layer_set_source_crop(layer, left, top, width, height);
                 hwc2_compat_layer_set_display_frame(layer, left, top, width, height);
                 hwc2_compat_layer_set_visible_region(layer, left, top, width, height);
-
             }
 
             uint32_t num_requests = 0;
@@ -246,9 +266,16 @@ void mga::RealHwc2Wrapper::set(
             bool sync_before_set = true;
 
             std::shared_ptr<mg::Buffer> buffer = nullptr;
-            for (auto& it : content.list) {
-                assert(buffer == nullptr); // There should be only a single layer with buffer
-                buffer = it.layer.buffer();
+            for (auto& content : contents)
+            {
+                if (content.name == display_name(display_id)) {
+                    for (auto& it : content.list) {
+                        //assert(buffer == nullptr); // There should be only a single layer with buffer
+                        if (it.layer.type() == mga::LayerType::gl_rendered ||
+                            it.layer.type() == mga::LayerType::framebuffer_target)
+                            buffer = it.layer.buffer();
+                    }
+                }
             }
 
             if (buffer == nullptr) {
@@ -385,7 +412,6 @@ void mga::RealHwc2Wrapper::hotplug(hwc2_display_t disp, bool connected, bool pri
                 mir::log_info("hotplug: Removing display %i", display_id);
                 active_displays[display_id] = false;
             }
-
         }
 
         is_plugged[display_id].store(connected);
@@ -410,6 +436,40 @@ void mga::RealHwc2Wrapper::hotplug(hwc2_display_t disp, bool connected, bool pri
 void mga::RealHwc2Wrapper::invalidate() noexcept
 {
     std::unique_lock<std::mutex> lk(callback_map_lock);
+
+    // Depending on the device and its drivers it might be beneficial
+    // to either overcommit/backpressure or not.
+    bool missed_a_frame{false};
+
+    for (auto& display : hwc2_displays) {
+        const int display_id = display.first;
+        int _last_present_fence = last_present_fence[display_id];
+        if (_last_present_fence < 0)
+            continue;
+
+        struct sync_fence_info_data* fence_info = sync_fence_info(_last_present_fence);
+        const bool frameMissed = (fence_info && fence_info->status != 1);
+        if (fence_info)
+            sync_fence_info_free(fence_info);
+
+        // Wait a short grace period before continuing
+        if (frameMissed) {
+            sync_wait(_last_present_fence, 1);
+        }
+        close(_last_present_fence);
+        last_present_fence[display_id] = -1;
+        missed_a_frame |= frameMissed;
+    }
+
+    // Ok, we missed a frame on a screen..
+    // - Now, either ignore and don't cause backpressure to happen
+    // - Explicitly cause backpressure to happen
+
+    // Case one: avoid backpressure
+    if (missed_a_frame && avoid_backpressure)
+        return;
+
+    // Case two: run invalidation callbacks anyway
     for(auto const& callbacks : callback_map)
     {
         try
@@ -533,3 +593,4 @@ bool mga::RealHwc2Wrapper::display_connected(DisplayName display_name) const
     //return hwc_device->getDisplayConfigs(hwc_device.get(), as_hwc_display(display_name), nullptr, &num_configs) == 0;
     return true;
 }
+

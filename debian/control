@@ -41,7 +41,8 @@ Build-Depends: cmake,
                libglib2.0-dev,
                libumockdev-dev (>= 0.6),
                umockdev (>= 0.8.7),
-               libwayland-dev
+               libwayland-dev,
+               libdeviceinfo-dev
 Standards-Version: 3.9.4
 Homepage: https://launchpad.net/mir-android-platform
 # If you aren't a member of ~mir-team but need to upload packaging changes,

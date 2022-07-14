@@ -157,7 +157,8 @@ mga::Display::Display(
         std::bind(&mga::Display::on_hotplug, this),
         std::bind(&mga::Display::on_vsync, this,
                                            std::placeholders::_1,
-                                           std::placeholders::_2))},
+                                           std::placeholders::_2),
+        std::bind(&mga::Display::on_refresh, this))},
     config(
         hwc_config->active_config_for(mga::DisplayName::primary),
         mir_power_mode_off,
@@ -276,6 +277,11 @@ void mga::Display::on_vsync(DisplayName name, mg::Frame::Timestamp timestamp)
     auto& f = last_frame[as_output_id(name).as_value()];
     f.increment_with_timestamp(timestamp);
     display_report->report_vsync(as_output_id(name).as_value(), f.load());
+}
+
+void mga::Display::on_refresh()
+{
+    // Could be used later
 }
 
 mg::Frame mga::Display::last_frame_on(unsigned output_id) const

@@ -65,26 +65,47 @@ std::vector<std::string> get_list_prop(const std::string& list_prop)
 static bool decide_egl_sync()
 {
     // This configuration is determined by a comma-separated list of paths to programs.
+    // Starting an entry in the list with an exclamation mark (!) disables the setting
+    // for exactly that program.
     const auto exe = get_exe_path();
+    const auto disallowance_exe = std::string("!") + exe;
+
+    // If the program's path cannot be determined then go for classic fencing
     if (exe.empty())
         return false;
 
     // First look whether to explicitly allow EGL flushing mode.
     DeviceInfo device_info(DeviceInfo::PrintMode::None);
     auto setting = device_info.get("MirAndroidPlatformClientEglFlush", "");
+    auto values = get_list_prop(setting);
+
+    // Make it possible for the integrator to disallow use in certain programs
+    if (std::find(values.begin(), values.end(), disallowance_exe) != values.end())
+        return false;
 
     // Check for the value being either "all", or a matching entry in the list.
-    auto values = get_list_prop(setting);
     if (setting == "all")
         return true;
+    else if (std::find(values.begin(), values.end(), "all") != values.end())
+        return true;
+
+    // Check for the program's explicit enablement
     if (std::find(values.begin(), values.end(), exe) != values.end())
         return true;
 
     // Now check whether someone explicitly wants classic fencing.
     setting = device_info.get("MirAndroidPlatformClientFenceSync", "");
+    values = get_list_prop(setting);
+
+    // Again, check for disallowance as set by the integrator
+    if (std::find(values.begin(), values.end(), disallowance_exe) != values.end())
+        return false;
+
     if (setting == "all")
         return true;
-    values = get_list_prop(setting);
+    else if (std::find(values.begin(), values.end(), "all") != values.end())
+        return true;
+
     return (std::find(values.begin(), values.end(), exe) != values.end());
 }
 }

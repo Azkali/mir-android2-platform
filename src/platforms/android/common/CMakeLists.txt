@@ -8,6 +8,7 @@ add_library(
   egl_sync_fence.cpp
   egl_sync_extensions.cpp
   native_window_report.cpp
+  hybris_gralloc_impl.cpp
 )
 target_compile_definitions(mirsharedandroid-static PUBLIC ANDROID)
 target_include_directories(mirsharedandroid-static PUBLIC

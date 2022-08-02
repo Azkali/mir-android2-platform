@@ -378,11 +378,7 @@ mg::PlatformPriority probe_graphics_platform(std::shared_ptr<mir::ConsoleService
 namespace
 {
 mir::ModuleProperties const description = {
-#ifdef ANDROID_CAF
-    "mir:android-caf",
-#else
     "ubports:android2",
-#endif
     MIR_VERSION_MAJOR,
     MIR_VERSION_MINOR,
     MIR_VERSION_MICRO,

@@ -77,11 +77,7 @@ void mga::IpcOperations::unpack_buffer(BufferIpcMessage&, Buffer const&) const
 namespace
 {
 mir::ModuleProperties const properties = {
-#ifdef ANDROID_CAF
-    "mir:android-caf",
-#else
     "ubports:android2",
-#endif
     MIR_VERSION_MAJOR,
     MIR_VERSION_MINOR,
     MIR_VERSION_MICRO,

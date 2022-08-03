@@ -21,7 +21,6 @@
 #include "src/platforms/android/server/cmdstream_sync_factory.h"
 #include "native_buffer.h"
 
-#include "mir/test/doubles/mock_android_alloc_device.h"
 #include "mir/test/doubles/mock_egl.h"
 #include "mir/test/doubles/mock_hybris_gralloc.h"
 

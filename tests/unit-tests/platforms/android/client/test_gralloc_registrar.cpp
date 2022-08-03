@@ -122,6 +122,33 @@ TEST_F(GrallocRegistrar, registrar_frees_fds)
     }
 }
 
+TEST_F(GrallocRegistrar, close_duplicated_fds_from_import)
+{
+    using namespace testing;
+
+    EXPECT_CALL(*mock_native_handle_ops, close(_))
+        .Times(1);
+
+    mcla::GrallocRegistrar registrar(mock_hybris_gralloc, mock_native_handle_ops);
+    auto buffer = registrar.register_buffer(stub_package, pf);
+}
+
+TEST_F(GrallocRegistrar, dont_close_fds_if_import_buffer_return_the_same_handle)
+{
+    using namespace testing;
+
+    EXPECT_CALL(*mock_hybris_gralloc, importBuffer(_, _))
+        .Times(1)
+        .WillOnce(Invoke([](buffer_handle_t handle, buffer_handle_t &out_handle) {
+            out_handle = handle;
+            return 0;
+        }));
+    EXPECT_CALL(*mock_native_handle_ops, close(_))
+        .Times(0);
+
+    mcla::GrallocRegistrar registrar(mock_hybris_gralloc, mock_native_handle_ops);
+    auto buffer = registrar.register_buffer(stub_package, pf);
+}
 
 TEST_F(GrallocRegistrar, register_failure)
 {

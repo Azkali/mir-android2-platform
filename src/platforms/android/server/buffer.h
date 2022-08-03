@@ -26,6 +26,8 @@
 #include "mir/renderer/sw/pixel_source.h"
 #include "mir/graphics/texture.h"
 
+#include "hybris_gralloc.h"
+
 #include <hardware/gralloc.h>
 
 #include <mutex>
@@ -86,7 +88,7 @@ class Buffer: public BufferBasic, public NativeBufferBase,
               public renderer::software::PixelSource
 {
 public:
-    Buffer(gralloc_module_t const* hw_module,
+    Buffer(std::shared_ptr<HybrisGralloc> const& hybris_gralloc,
            std::shared_ptr<android::NativeBuffer> const& buffer_handle,
            std::shared_ptr<EGLExtensions> const& extensions);
     ~Buffer();
@@ -120,7 +122,7 @@ protected:
 private:
     void bind(std::unique_lock<std::mutex> const&);
     void secure_for_render(std::unique_lock<std::mutex> const&);
-    gralloc_module_t const* hw_module;
+    std::shared_ptr<HybrisGralloc> hybris_gralloc;
 
     typedef std::pair<EGLDisplay, EGLContext> DispContextPair;
     std::map<DispContextPair,EGLImageKHR> egl_image_map;

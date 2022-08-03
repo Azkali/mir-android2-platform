@@ -38,8 +38,6 @@
 #include "android_native_buffer.h"
 #include "graphic_buffer_allocator.h"
 #include "gralloc_module.h"
-#include "hybris_alloc_device.h"
-#include "hybris_registar_device.h"
 #include "buffer.h"
 #include "device_quirks.h"
 #include "egl_sync_fence.h"
@@ -90,15 +88,15 @@ std::unique_ptr<mir::renderer::gl::Context> context_for_output(mg::Display const
 }
 
 mga::GraphicBufferAllocator::GraphicBufferAllocator(
+    std::shared_ptr<HybrisGralloc> const& hybris_gralloc,
     std::shared_ptr<CommandStreamSyncFactory> const& cmdstream_sync_factory,
     std::shared_ptr<DeviceQuirks> const& quirks)
-    : egl_extensions(std::make_shared<mg::EGLExtensions>()),
+    : hybris_gralloc(hybris_gralloc),
+    alloc_device(std::make_shared<mga::GrallocModule>(hybris_gralloc, cmdstream_sync_factory, quirks)),
+    egl_extensions(std::make_shared<mg::EGLExtensions>()),
     cmdstream_sync_factory(cmdstream_sync_factory),
     quirks(quirks)
 {
-    registar_device = std::make_shared<HybrisRegistarDevice>();
-    auto alloc_dev_ptr = std::make_shared<mga::HybrisAllocDevice>();
-    alloc_device = std::make_shared<mga::GrallocModule>(alloc_dev_ptr, cmdstream_sync_factory, quirks);
 }
 
 void mga::GraphicBufferAllocator::set_ctx(mg::Display const& output) {
@@ -109,7 +107,7 @@ std::shared_ptr<mg::Buffer> mga::GraphicBufferAllocator::alloc_buffer(
     mg::BufferProperties const& properties)
 {
     return std::make_shared<Buffer>(
-        reinterpret_cast<gralloc_module_t const*>(registar_device.get()),
+        hybris_gralloc,
         alloc_device->alloc_buffer(
             properties.size,
             mga::to_android_format(properties.format),
@@ -121,7 +119,7 @@ std::shared_ptr<mg::Buffer> mga::GraphicBufferAllocator::alloc_framebuffer(
     geometry::Size size, MirPixelFormat pf)
 {
     return std::make_shared<Buffer>(
-        reinterpret_cast<gralloc_module_t const*>(registar_device.get()),
+        hybris_gralloc,
         alloc_device->alloc_buffer(
             size,
             mga::to_android_format(pf),
@@ -145,7 +143,7 @@ std::shared_ptr<mg::Buffer> mga::GraphicBufferAllocator::alloc_software_buffer(
     geometry::Size size, MirPixelFormat format)
 {
     return std::make_shared<Buffer>(
-        reinterpret_cast<gralloc_module_t const*>(registar_device.get()),
+        hybris_gralloc,
         alloc_device->alloc_buffer(
             size,
             mga::to_android_format(format),
@@ -157,7 +155,7 @@ std::shared_ptr<mg::Buffer> mga::GraphicBufferAllocator::alloc_buffer(
     geometry::Size size, uint32_t native_format, uint32_t native_flags)
 {
     return std::make_shared<Buffer>(
-        reinterpret_cast<gralloc_module_t const*>(registar_device.get()),
+        hybris_gralloc,
         alloc_device->alloc_buffer(size, native_format, native_flags),
         egl_extensions);
 }

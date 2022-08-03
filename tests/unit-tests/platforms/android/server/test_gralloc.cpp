@@ -23,6 +23,7 @@
 
 #include "mir/test/doubles/mock_android_alloc_device.h"
 #include "mir/test/doubles/mock_egl.h"
+#include "mir/test/doubles/mock_hybris_gralloc.h"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -37,9 +38,9 @@ using namespace testing;
 struct Gralloc : Test
 {
     Gralloc():
-        mock_alloc_device(std::make_shared<NiceMock<mtd::MockAllocDevice>>()),
+        mock_hybris_gralloc(std::make_shared<NiceMock<mtd::MockHybrisGralloc>>()),
         gralloc(std::make_shared<mga::GrallocModule>(
-            mock_alloc_device, sync_factory, std::make_shared<mga::DeviceQuirks>(mga::PropertiesOps{}))),
+            mock_hybris_gralloc, sync_factory, std::make_shared<mga::DeviceQuirks>(mga::PropertiesOps{}))),
         pf(mir_pixel_format_abgr_8888),
         size{300, 200}
     {
@@ -47,7 +48,7 @@ struct Gralloc : Test
 
     testing::NiceMock<mtd::MockEGL> mock_egl;
     std::shared_ptr<mga::CommandStreamSyncFactory> sync_factory{std::make_shared<mga::EGLSyncFactory>()};
-    std::shared_ptr<mtd::MockAllocDevice> mock_alloc_device;
+    std::shared_ptr<mtd::MockHybrisGralloc> mock_hybris_gralloc;
     std::shared_ptr<mga::GrallocModule> gralloc;
 
     MirPixelFormat pf;
@@ -60,10 +61,10 @@ struct Gralloc : Test
 
 TEST_F(Gralloc, resource_type_test_fail_ret)
 {
-    EXPECT_CALL(*mock_alloc_device, alloc_interface(_,_,_,_,_,_,_))
+    EXPECT_CALL(*mock_hybris_gralloc, allocate(_,_,_,_,_,_))
     .WillOnce(DoAll(
-                  SetArgPointee<5>(mock_alloc_device->buffer_handle),
-                  SetArgPointee<6>(size.width.as_uint32_t()*4),
+                  SetArgReferee<4>(mock_hybris_gralloc->buffer_handle),
+                  SetArgReferee<5>(size.width.as_uint32_t()*4),
                   Return(-1)));
 
     EXPECT_THROW({
@@ -73,10 +74,10 @@ TEST_F(Gralloc, resource_type_test_fail_ret)
 
 TEST_F(Gralloc, resource_type_test_fail_stride)
 {
-    EXPECT_CALL(*mock_alloc_device, alloc_interface(_,_,_,_,_,_,_))
+    EXPECT_CALL(*mock_hybris_gralloc, allocate(_,_,_,_,_,_))
     .WillOnce(DoAll(
-                  SetArgPointee<5>(mock_alloc_device->buffer_handle),
-                  SetArgPointee<6>(0),
+                  SetArgReferee<4>(mock_hybris_gralloc->buffer_handle),
+                  SetArgReferee<5>(0),
                   Return(0)));
 
     EXPECT_THROW({
@@ -86,10 +87,10 @@ TEST_F(Gralloc, resource_type_test_fail_stride)
 
 TEST_F(Gralloc, resource_type_test_fail_null_handle)
 {
-    EXPECT_CALL(*mock_alloc_device, alloc_interface(_,_,_,_,_,_,_))
+    EXPECT_CALL(*mock_hybris_gralloc, allocate(_,_,_,_,_,_))
     .WillOnce(DoAll(
-                  SetArgPointee<5>(nullptr),
-                  SetArgPointee<6>(size.width.as_uint32_t()*4),
+                  SetArgReferee<4>(nullptr),
+                  SetArgReferee<5>(size.width.as_uint32_t()*4),
                   Return(0)));
 
     EXPECT_THROW({
@@ -99,28 +100,28 @@ TEST_F(Gralloc, resource_type_test_fail_null_handle)
 
 TEST_F(Gralloc, resource_type_test_proper_alloc_is_used)
 {
-    EXPECT_CALL(*mock_alloc_device, alloc_interface(mock_alloc_device.get(),_,_,_,_,_,_));
-    EXPECT_CALL(*mock_alloc_device, free_interface(mock_alloc_device.get(),_));
+    EXPECT_CALL(*mock_hybris_gralloc, allocate(_,_,_,_,_,_));
+    EXPECT_CALL(*mock_hybris_gralloc, release(_, /* was_allocated */ true));
 
     gralloc->alloc_buffer(size, android_pf, hw_usage_flags);
 }
 
 TEST_F(Gralloc, resource_type_test_deleter_deletes_correct_handle)
 {
-    EXPECT_CALL(*mock_alloc_device, alloc_interface(_,_,_,_,_,_,_))
+    EXPECT_CALL(*mock_hybris_gralloc, allocate(_,_,_,_,_,_))
     .WillOnce(DoAll(
-                  SetArgPointee<5>(mock_alloc_device->buffer_handle),
-                  SetArgPointee<6>(size.width.as_uint32_t()*4),
+                  SetArgReferee<4>(mock_hybris_gralloc->buffer_handle),
+                  SetArgReferee<5>(size.width.as_uint32_t()*4),
                   Return(0)));
-    EXPECT_CALL(*mock_alloc_device, free_interface(_,mock_alloc_device->buffer_handle));
+    EXPECT_CALL(*mock_hybris_gralloc, release(mock_hybris_gralloc->buffer_handle, _));
 
     gralloc->alloc_buffer(size, android_pf, hw_usage_flags);
 }
 
 TEST_F(Gralloc, adaptor_gralloc_format_conversion_abgr8888)
 {
-    EXPECT_CALL(*mock_alloc_device, alloc_interface(_,_,_,HAL_PIXEL_FORMAT_RGBA_8888,_,_,_));
-    EXPECT_CALL(*mock_alloc_device, free_interface(_,_));
+    EXPECT_CALL(*mock_hybris_gralloc, allocate(_,_,HAL_PIXEL_FORMAT_RGBA_8888,_,_,_));
+    EXPECT_CALL(*mock_hybris_gralloc, release(_,_));
 
     gralloc->alloc_buffer(size, android_pf, hw_usage_flags);
 }
@@ -129,16 +130,16 @@ TEST_F(Gralloc, adaptor_gralloc_dimension_conversion)
 {
     int w = size.width.as_uint32_t();
     int h = size.height.as_uint32_t();
-    EXPECT_CALL(*mock_alloc_device, alloc_interface(_,w,h,_,_,_,_));
-    EXPECT_CALL(*mock_alloc_device, free_interface(_,_));
+    EXPECT_CALL(*mock_hybris_gralloc, allocate(w,h,_,_,_,_));
+    EXPECT_CALL(*mock_hybris_gralloc, release(_,_));
 
     gralloc->alloc_buffer(size, android_pf, hw_usage_flags);
 }
 
 TEST_F(Gralloc, adaptor_gralloc_usage_correct)
 {
-    EXPECT_CALL(*mock_alloc_device, alloc_interface(_,_,_,_,hw_usage_flags,_,_));
-    EXPECT_CALL(*mock_alloc_device, free_interface(_,_) );
+    EXPECT_CALL(*mock_hybris_gralloc, allocate(_,_,_,hw_usage_flags,_,_));
+    EXPECT_CALL(*mock_hybris_gralloc, release(_,_) );
 
     gralloc->alloc_buffer(size, android_pf, hw_usage_flags);
 }
@@ -149,7 +150,7 @@ TEST_F(Gralloc, handle_size_is_correct)
     auto anwb = native_handle->anwb();
     EXPECT_EQ(static_cast<int>(size.width.as_uint32_t()), anwb->width);
     EXPECT_EQ(static_cast<int>(size.height.as_uint32_t()), anwb->height);
-    EXPECT_EQ(static_cast<int>(mock_alloc_device->fake_stride), anwb->stride);
+    EXPECT_EQ(static_cast<int>(mock_hybris_gralloc->fake_stride), anwb->stride);
 }
 
 TEST_F(Gralloc, handle_buffer_pf_is_reflected_in_format_field)

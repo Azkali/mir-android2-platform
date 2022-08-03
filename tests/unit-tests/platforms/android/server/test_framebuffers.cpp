@@ -20,9 +20,9 @@
 #include "src/platforms/android/server/graphic_buffer_allocator.h"
 #include "src/platforms/android/server/cmdstream_sync_factory.h"
 #include "src/platforms/android/server/device_quirks.h"
-#include "mir/test/doubles/mock_android_hw.h"
 #include "mir/test/doubles/mock_buffer.h"
 #include "mir/test/doubles/mock_egl.h"
+#include "mir/test/doubles/mock_hybris_gralloc.h"
 
 #include <future>
 #include <initializer_list>
@@ -41,8 +41,8 @@ namespace
 struct Framebuffers : Test
 {
     NiceMock<mtd::MockEGL> mock_egl;
-    NiceMock<mtd::HardwareAccessMock> hw_access_mock;
     mga::GraphicBufferAllocator allocator{
+        std::make_shared<mtd::MockHybrisGralloc>(),
         std::make_shared<mga::NullCommandStreamSyncFactory>(),
         std::make_shared<mga::DeviceQuirks>(mga::PropertiesOps{})};
     MirPixelFormat format{mir_pixel_format_abgr_8888};

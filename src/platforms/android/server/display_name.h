@@ -33,9 +33,6 @@ enum class DisplayName
 {
     primary = HWC_DISPLAY_PRIMARY,
     external = HWC_DISPLAY_EXTERNAL,
-#ifdef ANDROID_CAF
-    tertiary = HWC_DISPLAY_TERTIARY,
-#endif
     virt = HWC_DISPLAY_VIRTUAL
 };
 

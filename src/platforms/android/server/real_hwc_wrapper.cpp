@@ -52,10 +52,6 @@ mga::DisplayName display_name(int raw_name)
             return mga::DisplayName::primary;
         case HWC_DISPLAY_EXTERNAL:
             return mga::DisplayName::external;
-#ifdef ANDROID_CAF
-        case HWC_DISPLAY_TERTIARY:
-            return mga::DisplayName::tertiary;
-#endif
         case HWC_DISPLAY_VIRTUAL:
             return mga::DisplayName::virt;
     }
@@ -64,11 +60,7 @@ mga::DisplayName display_name(int raw_name)
 std::array<hwc_display_contents_1_t*, HWC_NUM_DISPLAY_TYPES> const& to_display_contensts_list(
      std::list<mga::DisplayContents> const& contents)
  {
-#ifdef ANDROID_CAF
-    std::array<hwc_display_contents_1*, HWC_NUM_DISPLAY_TYPES> lists{{ nullptr, nullptr, nullptr, nullptr }};
-#else
     std::array<hwc_display_contents_1*, HWC_NUM_DISPLAY_TYPES> lists{{ nullptr, nullptr, nullptr }};
-#endif
 
     for (auto& content : contents)
     {

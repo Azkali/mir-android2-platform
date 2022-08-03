@@ -33,17 +33,11 @@ struct DisplayOutputConnections
     bool primary;
     bool external;
     bool virt;
-#ifdef ANDROID_CAF
-    bool tertiary;
-#endif
 
     bool operator==(const DisplayOutputConnections& other) const
     {
         return primary == other.primary &&
                external == other.external &&
-#ifdef ANDROID_CAF
-               tertiary == other.tertiary &&
-#endif
                virt == other.virt;
     }
 };
@@ -61,15 +55,6 @@ public:
                          DisplayConfigurationOutput external,
                          MirPowerMode external_mode,
                          DisplayConfigurationOutput virt_config);
-#ifdef ANDROID_CAF
-    DisplayConfiguration(DisplayConfigurationOutput primary,
-                         MirPowerMode primary_mode,
-                         DisplayConfigurationOutput external,
-                         MirPowerMode external_mode,
-                         DisplayConfigurationOutput tertiary,
-                         MirPowerMode tertiary_mode,
-                         DisplayConfigurationOutput virt_config);
-#endif
 
 
 
@@ -85,9 +70,6 @@ public:
 
     DisplayConfigurationOutput& primary();
     DisplayConfigurationOutput& external();
-#ifdef ANDROID_CAF
-    DisplayConfigurationOutput& tertiary();
-#endif
     DisplayConfigurationOutput& virt();
     DisplayConfigurationOutput& operator[](DisplayConfigurationOutputId const&);
 
@@ -97,11 +79,7 @@ public:
     void disable_virtual_output();
 
 private:
-#ifdef ANDROID_CAF
-    std::array<DisplayConfigurationOutput, 4> configurations;
-#else
     std::array<DisplayConfigurationOutput, 3> configurations;
-#endif
     DisplayConfigurationCard card;
 };
 

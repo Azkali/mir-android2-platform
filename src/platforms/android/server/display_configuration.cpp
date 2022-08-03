@@ -27,9 +27,6 @@ enum DisplayIds
 {
     primary_id,
     external_id,
-#ifdef ANDROID_CAF
-    tertiary_id,
-#endif
     virtual_id,
     max_displays
 };
@@ -77,51 +74,6 @@ mg::DisplayConfigurationOutput make_virtual_config()
     };
 }
 
-#ifdef ANDROID_CAF
-mg::DisplayConfigurationOutput make_tertiary_config()
-{
-    auto const name = mga::DisplayName::tertiary;
-    double const vrefresh_hz{60.0};
-    geom::Size const mm_size{660, 370};
-    auto const display_format = mir_pixel_format_argb_8888;
-    geom::Point const origin{0,0};
-    auto const external_mode = mir_power_mode_off;
-    size_t const preferred_format_index{0};
-    size_t const preferred_mode_index{0};
-    bool const connected{false};
-    auto const type = mg::DisplayConfigurationOutputType::unknown;
-    auto const form_factor = mir_form_factor_monitor;
-    float const scale{1.0f};
-    std::vector<mg::DisplayConfigurationMode> external_modes;
-    auto const subpixel_arrangement = mir_subpixel_arrangement_unknown;
-    external_modes.emplace_back(mg::DisplayConfigurationMode{{1920,1080}, vrefresh_hz});
-
-    return {
-        as_output_id(name),
-        mg::DisplayConfigurationCardId{0},
-        type,
-        {display_format},
-        external_modes,
-        preferred_mode_index,
-        mm_size,
-        connected,
-        connected,
-        origin,
-        preferred_format_index,
-        display_format,
-        external_mode,
-        mir_orientation_normal,
-        scale,
-        form_factor,
-        subpixel_arrangement,
-        {},
-        mir_output_gamma_unsupported,
-        {},
-        {}
-
-    };
-}
-#endif
 
 }
 
@@ -132,52 +84,26 @@ mga::DisplayConfiguration::DisplayConfiguration(
     MirPowerMode external_mode) :
     DisplayConfiguration(primary_config, primary_mode,
                          external_config, external_mode,
-#ifdef ANDROID_CAF
-                         make_tertiary_config(), mir_power_mode_off,
-#endif
                          make_virtual_config())
 {
 }
 
-#ifdef ANDROID_CAF
-mga::DisplayConfiguration::DisplayConfiguration(
-    mg::DisplayConfigurationOutput primary_config,
-    MirPowerMode primary_mode,
-    mg::DisplayConfigurationOutput external_config,
-    MirPowerMode external_mode,
-    mg::DisplayConfigurationOutput virt_config) :
-    DisplayConfiguration(primary_config, primary_mode,
-                         external_config, external_mode,
-                         make_tertiary_config(), mir_power_mode_off,
-                         virt_config)
-{}
-#endif
 
 mga::DisplayConfiguration::DisplayConfiguration(
     mg::DisplayConfigurationOutput primary_config,
     MirPowerMode primary_mode,
     mg::DisplayConfigurationOutput external_config,
     MirPowerMode external_mode,
-#ifdef ANDROID_CAF
-    mg::DisplayConfigurationOutput tertiary_config,
-    MirPowerMode tertiary_mode,
-#endif
     mg::DisplayConfigurationOutput virt_config) :
     configurations{
         {std::move(primary_config),
         std::move(external_config),
-#ifdef ANDROID_CAF
-        std::move(tertiary_config),
-#endif
         std::move(virt_config)}
     },
     card{mg::DisplayConfigurationCardId{0}, max_displays}
 {
     primary().power_mode = primary_mode;
     external().power_mode = external_mode;
-#ifdef ANDROID_CAF
-    tertiary().power_mode = tertiary_mode;
-#endif
 }
 
 mga::DisplayConfiguration::DisplayConfiguration(DisplayConfiguration const& other) :
@@ -232,12 +158,6 @@ mg::DisplayConfigurationOutput& mga::DisplayConfiguration::external()
     return configurations[external_id];
 }
 
-#ifdef ANDROID_CAF
-mg::DisplayConfigurationOutput& mga::DisplayConfiguration::tertiary()
-{
-    return configurations[tertiary_id];
-}
-#endif
 
 mg::DisplayConfigurationOutput& mga::DisplayConfiguration::virt()
 {
@@ -247,11 +167,7 @@ mg::DisplayConfigurationOutput& mga::DisplayConfiguration::virt()
 mg::DisplayConfigurationOutput& mga::DisplayConfiguration::operator[](mg::DisplayConfigurationOutputId const& disp_id)
 {
     auto id = disp_id.as_value() - 1;
-#ifdef ANDROID_CAF
-    if (id != primary_id && id != external_id && id != tertiary_id && id != virtual_id)
-#else
     if (id != primary_id && id != external_id && id != virtual_id)
-#endif
         BOOST_THROW_EXCEPTION(std::invalid_argument("invalid display id"));
     return configurations[id];
 }
@@ -260,9 +176,6 @@ const mga::DisplayOutputConnections mga::DisplayConfiguration::output_connection
 {
     return DisplayOutputConnections{primary().connected,
                                     external().connected,
-#ifdef ANDROID_CAF
-                                    tertiary().connected,
-#endif
                                     virt().connected};
 }
 

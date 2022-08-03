@@ -19,6 +19,7 @@
 #ifndef MIR_GRAPHICS_ANDROID_MIR_NATIVE_WINDOW_H_
 #define MIR_GRAPHICS_ANDROID_MIR_NATIVE_WINDOW_H_
 
+#include "egl_sync_extensions.h"
 #include <system/window.h>
 #include <cstdarg>
 #include <memory>
@@ -49,13 +50,15 @@ public:
     int queueBufferDeprecated(struct ANativeWindowBuffer* buffer);
     int cancelBuffer(struct ANativeWindowBuffer* buffer, int fence);
     int cancelBufferDeprecated(struct ANativeWindowBuffer* buffer);
+    int lockBuffer(struct ANativeWindowBuffer* buffer);
     int setSwapInterval(int interval);
     AndroidDriverInterpreter& interpreter();
+
 private:
     std::shared_ptr<AndroidDriverInterpreter> const driver_interpreter;
     std::shared_ptr<NativeWindowReport> const report;
     std::shared_ptr<SyncFileOps> const sync_ops;
-    std::vector<struct ANativeWindowBuffer*> cancelled_buffers;
+    mir::graphics::EGLSyncExtensions egl;
 };
 
 }

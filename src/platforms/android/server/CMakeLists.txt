@@ -66,6 +66,7 @@ target_link_libraries(
   ${GLESv2_LDFLAGS} ${GLESv2_LIBRARIES}
   ${ANDROID_PROPERTIES_LDFLAGS}
   ${WAYLAND_SERVER_LDFLAGS} ${WAYLAND_SERVER_LIBRARIES}
+  ${DEVICEINFO_LDFLAGS} ${DEVICEINFO_LIBRARIES}
   -lhwc2 -lhybris-eglplatformcommon -lsync
 )
 

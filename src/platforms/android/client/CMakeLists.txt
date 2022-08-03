@@ -39,6 +39,7 @@ target_link_libraries(mirclientplatformandroid
   ${GRALLOC_LIBRARIES}
   ${HYBRIS_EGL_PLATFORM_LIBRARIES}
   ${EGL_LDFLAGS} ${EGL_LIBRARIES}
+  ${DEVICEINFO_LDFLAGS} ${DEVICEINFO_LIBRARIES}
 )
 
 install(TARGETS mirclientplatformandroid LIBRARY DESTINATION ${MIR_CLIENT_PLATFORM_PATH})

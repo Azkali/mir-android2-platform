@@ -19,18 +19,96 @@
 #include "egl_native_surface_interpreter.h"
 #include "mir/client/client_buffer.h"
 #include "mir/mir_render_surface.h"
+#include "mir/graphics/frame.h"
+#include "mir/log.h"
 #include "sync_fence.h"
 #include "android_format_conversion-inl.h"
 #include <boost/throw_exception.hpp>
 #include <hardware/gralloc.h>
+#include <algorithm>
+#include <chrono>
 #include <sstream>
+#include <iostream>
 #include <stdexcept>
 #include <system/graphics.h>
 #include <system/window.h>
+#include <deviceinfo/deviceinfo.h>
 
 namespace mcla = mir::client::android;
 namespace mcl = mir::client;
 namespace mga = mir::graphics::android;
+
+namespace
+{
+static std::string get_exe_path()
+{
+    char link[PATH_MAX];
+    const ssize_t target = readlink("/proc/self/exe", link, PATH_MAX);
+    if (target)
+        return std::string(link);
+    else
+        return std::string("");
+}
+
+std::vector<std::string> get_list_prop(const std::string& list_prop)
+{
+    std::vector<std::string> ret;
+    std::string tmp;
+    std::istringstream stream(list_prop);
+    while (std::getline(stream, tmp, *","))
+    {
+        ret.push_back(tmp);
+    }
+    return ret;
+}
+
+static bool decide_egl_sync()
+{
+    // This configuration is determined by a comma-separated list of paths to programs.
+    // Starting an entry in the list with an exclamation mark (!) disables the setting
+    // for exactly that program.
+    const auto exe = get_exe_path();
+    const auto disallowance_exe = std::string("!") + exe;
+
+    // If the program's path cannot be determined then go for classic fencing
+    if (exe.empty())
+        return false;
+
+    // First look whether to explicitly allow EGL flushing mode.
+    DeviceInfo device_info(DeviceInfo::PrintMode::None);
+    auto setting = device_info.get("MirAndroidPlatformClientEglFlush", "");
+    auto values = get_list_prop(setting);
+
+    // Make it possible for the integrator to disallow use in certain programs
+    if (std::find(values.begin(), values.end(), disallowance_exe) != values.end())
+        return false;
+
+    // Check for the value being either "all", or a matching entry in the list.
+    if (setting == "all")
+        return true;
+    else if (std::find(values.begin(), values.end(), "all") != values.end())
+        return true;
+
+    // Check for the program's explicit enablement
+    if (std::find(values.begin(), values.end(), exe) != values.end())
+        return true;
+
+    // Now check whether someone explicitly wants classic fencing.
+    setting = device_info.get("MirAndroidPlatformClientFenceSync", "");
+    values = get_list_prop(setting);
+
+    // Again, check for disallowance as set by the integrator
+    if (std::find(values.begin(), values.end(), disallowance_exe) != values.end())
+        return false;
+
+    if (setting == "all")
+        return true;
+    else if (std::find(values.begin(), values.end(), "all") != values.end())
+        return true;
+
+    return (std::find(values.begin(), values.end(), exe) != values.end());
+}
+}
 
 mcla::EGLNativeSurfaceInterpreter::EGLNativeSurfaceInterpreter(EGLNativeSurface* surface)
     : surface(surface),
@@ -39,29 +117,104 @@ mcla::EGLNativeSurfaceInterpreter::EGLNativeSurfaceInterpreter(EGLNativeSurface*
       hardware_bits(GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_HW_RENDER),
       software_bits(GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_HW_COMPOSER |
                     GRALLOC_USAGE_HW_TEXTURE),
-      last_buffer_age(0)
+      driver_usage_bits(0),
+      last_buffer_age(0),
+      use_egl_sync(decide_egl_sync())
 {
 }
 
-mga::NativeBuffer* mcla::EGLNativeSurfaceInterpreter::driver_requests_buffer()
+std::shared_ptr<mga::NativeBuffer> mcla::EGLNativeSurfaceInterpreter::driver_requests_buffer(int fence)
 {
-    acquire_surface();
-    auto buffer = surface->get_current_buffer();
-    last_buffer_age = buffer->age();
-    auto buffer_to_driver = mga::to_native_buffer_checked(buffer->native_buffer_handle());
+    std::unique_lock<decltype(mutex)> lk(mutex);
 
-    ANativeWindowBuffer* anwb = buffer_to_driver->anwb();
-    anwb->format = driver_pixel_format;
-    return buffer_to_driver.get();
+    if (cancelled_buffers.size() != 0)
+    {
+        auto buffer_to_driver = cancelled_buffers.front();
+        cancelled_buffers.pop();
+        buffer_to_driver->reset_fence();
+        buffer_to_driver->update_usage(fence, mga::BufferAccess::write);
+        return buffer_to_driver;
+    }
+    else
+    {
+        acquire_surface();
+        auto buffer = surface->get_current_buffer();
+        last_buffer_age = buffer->age();
+        auto buffer_to_driver = mga::to_native_buffer_checked(buffer->native_buffer_handle());
+
+        ANativeWindowBuffer* anwb = buffer_to_driver->anwb();
+        anwb->format = driver_pixel_format;
+
+        queue_tracker.push(buffer_to_driver);
+        return buffer_to_driver;
+    }
 }
 
 void mcla::EGLNativeSurfaceInterpreter::driver_returns_buffer(ANativeWindowBuffer*, int fence_fd)
 {
-    // TODO: pass fence to server instead of waiting here
-    mga::SyncFence sync_fence(sync_ops, mir::Fd(fence_fd));
-    sync_fence.wait();
+    std::unique_lock<decltype(mutex)> lk(mutex);
+
+    if (!surface)
+        return;
+
+    auto done_buffer = queue_tracker.front();
+    auto native_buffer = mga::to_native_buffer_checked(done_buffer);
+    native_buffer->wait_for_unlock_by_gpu();
+
+    // In EGL syncing mode we explicitly force the GL driver to flush the command buffer
+    // as is supposed to be the case with eglSwapBuffers, as per specification.
+    // This mode is intended for devices with driver bugs which don't have Android's EGL implementation
+    // flush properly, as is the case with the Adreno 615 on the Pixel 3a.
+    if (use_egl_sync && fence_fd >= 0)
+    {
+        EGLDisplay dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+        EGLint attribs[] = {
+            EGL_SYNC_NATIVE_FENCE_FD_ANDROID, dup(fence_fd),
+            EGL_NONE
+        };
+        close(fence_fd);
+
+        EGLSyncKHR sync = egl.eglCreateSyncKHR(dpy, EGL_SYNC_NATIVE_FENCE_ANDROID, attribs);
+        if (sync != EGL_NO_SYNC_KHR)
+        {
+            const EGLint state = egl.eglClientWaitSyncKHR(dpy, sync, EGL_SYNC_FLUSH_COMMANDS_BIT_KHR, EGL_FOREVER);
+            if (state != EGL_CONDITION_SATISFIED_KHR)
+            {
+                // Worst case this is going to flicker
+            }
+        }
+        egl.eglDestroySyncKHR(dpy, sync);
+    }
+    else if (!use_egl_sync && fence_fd >= 0)
+    {
+        using namespace std::chrono;
+        mga::SyncFence sync_fence(sync_ops, mir::Fd(fence_fd));
+        sync_fence.wait_for(milliseconds::max());
+    }
 
     surface->swap_buffers_sync();
+    queue_tracker.pop();
+}
+
+void mcla::EGLNativeSurfaceInterpreter::driver_cancels_buffer(ANativeWindowBuffer*, int)
+{
+    std::unique_lock<decltype(mutex)> lk(mutex);
+
+    auto cancelled_buffer = queue_tracker.front();
+    auto native_buffer = mga::to_native_buffer_checked(cancelled_buffer);
+    native_buffer->wait_for_unlock_by_gpu();
+    cancelled_buffer->reset_fence();
+    cancelled_buffers.push(cancelled_buffer);
+    queue_tracker.pop();
+}
+
+void mcla::EGLNativeSurfaceInterpreter::lock_buffer(ANativeWindowBuffer*)
+{
+    std::unique_lock<decltype(mutex)> lk(mutex);
+
+    auto buffer = queue_tracker.front();
+    auto native_buffer = mga::to_native_buffer_checked(buffer);
+    native_buffer->lock_for_gpu();
 }
 
 void mcla::EGLNativeSurfaceInterpreter::dispatch_driver_request_format(int format)
@@ -80,6 +233,19 @@ void mcla::EGLNativeSurfaceInterpreter::dispatch_driver_request_format(int forma
      */
     if (driver_pixel_format == -1 || driver_pixel_format == 0 || format == 0)
         driver_pixel_format = format;
+}
+
+void mcla::EGLNativeSurfaceInterpreter::dispatch_driver_usage_bits(uint64_t usage)
+{
+    uint64_t default_bits = 0;
+    if (!surface || surface->get_parameters().buffer_usage == mir_buffer_usage_hardware)
+        default_bits = hardware_bits;
+    else
+        default_bits = software_bits;
+    driver_usage_bits = (usage | default_bits);
+
+    // There is seemingly no way to pass preferences to newly created buffers,
+    // so leave it as an exercise for the future.
 }
 
 int mcla::EGLNativeSurfaceInterpreter::driver_requests_info(int key) const
@@ -116,11 +282,14 @@ int mcla::EGLNativeSurfaceInterpreter::driver_requests_info(int key) const
         return 2;
     case NATIVE_WINDOW_CONCRETE_TYPE:
         return NATIVE_WINDOW_SURFACE;
-    case NATIVE_WINDOW_CONSUMER_USAGE_BITS:
+    case NATIVE_WINDOW_CONSUMER_USAGE_BITS: {
+        uint64_t default_bits = 0;
         if (!surface || surface->get_parameters().buffer_usage == mir_buffer_usage_hardware)
-            return hardware_bits;
+            default_bits = hardware_bits;
         else
-            return software_bits;
+            default_bits = software_bits;
+        return driver_usage_bits | default_bits;
+    }
     case NATIVE_WINDOW_DEFAULT_DATASPACE:
         return HAL_DATASPACE_UNKNOWN;
     case NATIVE_WINDOW_BUFFER_AGE:
@@ -132,6 +301,8 @@ int mcla::EGLNativeSurfaceInterpreter::driver_requests_info(int key) const
         // The default maximum count of BufferQueue items.
         // See android::BufferQueueDefs::NUM_BUFFER_SLOTS.
         return 64;
+    case NATIVE_WINDOW_QUEUES_TO_WINDOW_COMPOSER:
+        return 1;
     default:
         std::stringstream sstream;
         sstream << "driver requested unsupported query. key: " << key;
@@ -151,6 +322,14 @@ void mcla::EGLNativeSurfaceInterpreter::dispatch_driver_request_buffer_count(uns
         surface->set_buffer_cache_size(count);
     else
         cache_count = count;
+}
+
+void mcla::EGLNativeSurfaceInterpreter::dispatch_driver_request_damage(geometry::Rectangles /*areas*/)
+{
+    if (!surface)
+        return;
+
+    // This currently doesn't seem to have a way to forcefully redraw a surface using the damage region.
 }
 
 void mcla::EGLNativeSurfaceInterpreter::dispatch_driver_request_buffer_size(geometry::Size size)

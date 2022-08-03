@@ -43,11 +43,15 @@ public:
                        std::shared_ptr<InterpreterResourceCache> const&,
                        DeviceQuirks& quirks);
 
-    graphics::android::NativeBuffer* driver_requests_buffer() override;
+    std::shared_ptr<graphics::android::NativeBuffer> driver_requests_buffer(int fence_fd) override;
     void driver_returns_buffer(ANativeWindowBuffer*, int fence_fd) override;
+    void driver_cancels_buffer(ANativeWindowBuffer*, int fence_fd) override;
+    void lock_buffer(ANativeWindowBuffer*) override;
     void dispatch_driver_request_format(int format) override;
     void dispatch_driver_request_buffer_count(unsigned int count) override;
     void dispatch_driver_request_buffer_size(geometry::Size size) override;
+    void dispatch_driver_request_damage(geometry::Rectangles areas) override;
+    void dispatch_driver_usage_bits(uint64_t) override;
     int driver_requests_info(int key) const override;
     void sync_to_display(bool sync) override;
 

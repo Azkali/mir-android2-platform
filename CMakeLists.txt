@@ -160,6 +160,7 @@ pkg_check_modules(MIRGLRENDERER REQUIRED mir-renderer-gl-dev)
 pkg_check_modules(MIRRENDERER REQUIRED mirrenderer)
 pkg_check_modules(MIRSERVER REQUIRED mirserver)
 pkg_check_modules(WAYLAND_SERVER REQUIRED wayland-server)
+pkg_check_modules(DEVICEINFO REQUIRED deviceinfo)
 
 include_directories(
     ${PROJECT_SOURCE_DIR}

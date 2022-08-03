@@ -75,8 +75,12 @@ bool gralloc_cannot_be_closed_safely_for(std::string const& device_name, bool qu
     return quirk_enabled && device_name == "krillin";
 }
 
-bool clear_fb_context_fence_for(std::string const& device_name)
+bool clear_fb_context_fence_for(std::string const& device_name, DeviceInfo& device_info)
 {
+    auto const setting = device_info.get("MirAndroidPlatformServerClearFbFence", "");
+    if (setting != "")
+        return (setting == "true" || setting == "1" || setting == "yes");
+
     return device_name == "krillin" || device_name == "arale" || device_name == "manta";
 }
 
@@ -85,8 +89,12 @@ bool device_has_fb_ion_heap(std::string const& device_name, bool quirk_enabled)
     return quirk_enabled && (device_name != "Aquaris_M10_FHD");
 }
 
-bool device_has_working_egl_sync(mga::GPUInfo const& gpu_info, std::string const& option)
+bool device_has_working_egl_sync(mga::GPUInfo const& gpu_info, std::string const& option, DeviceInfo& device_info)
 {
+    const std::string device_info_setting = device_info.get("MirAndroidPlatformServerEglSync", "");
+    if (device_info_setting != "")
+        return (device_info_setting == "true" || device_info_setting == "1" || device_info_setting == "yes");
+
     if (option == egl_sync_force_on)
         return true;
     if (option == egl_sync_force_off)
@@ -161,9 +169,9 @@ mga::DeviceQuirks::DeviceQuirks(
       num_framebuffers_(num_framebuffers_for(device_name, true)),
       gralloc_cannot_be_closed_safely_(gralloc_cannot_be_closed_safely_for(device_name, true)),
       enable_width_alignment_quirk{true},
-      clear_fb_context_fence_{clear_fb_context_fence_for(device_name)},
+      clear_fb_context_fence_{clear_fb_context_fence_for(device_name, device_info)},
       fb_ion_heap_{device_has_fb_ion_heap(device_name, true)},
-      working_egl_sync_{device_has_working_egl_sync(gpu_info, egl_sync_default)}
+      working_egl_sync_{device_has_working_egl_sync(gpu_info, egl_sync_default, device_info)}
 {
 }
 
@@ -178,10 +186,10 @@ mga::DeviceQuirks::DeviceQuirks(PropertiesWrapper const& properties, mo::Option 
       num_framebuffers_(num_framebuffers_for(device_name, options.get(num_framebuffers_opt, true))),
       gralloc_cannot_be_closed_safely_(gralloc_cannot_be_closed_safely_for(device_name, options.get(gralloc_cannot_be_closed_safely_opt, true))),
       enable_width_alignment_quirk(options.get(width_alignment_opt, true)),
-      clear_fb_context_fence_{clear_fb_context_fence_for(device_name)},
+      clear_fb_context_fence_{clear_fb_context_fence_for(device_name, device_info)},
       fb_ion_heap_{device_has_fb_ion_heap(device_name, options.get(fb_ion_heap_opt, true))},
       working_egl_sync_{device_has_working_egl_sync(
-        gpu_info, options.get(working_egl_sync_opt, egl_sync_default.c_str()))}
+        gpu_info, options.get(working_egl_sync_opt, egl_sync_default.c_str()), device_info)}
 {
 }
 

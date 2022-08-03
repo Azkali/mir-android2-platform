@@ -112,6 +112,7 @@ public:
     void set_acquirefence();
     void release_buffer();
     std::shared_ptr<Buffer> buffer();
+    LayerType type();
 
 private:
     std::shared_ptr<LayerAdapter> layer_adapter;
@@ -119,6 +120,7 @@ private:
     std::shared_ptr<hwc_display_contents_1_t> hwc_list;
     hwc_rect_t visible_rect;
     std::shared_ptr<Buffer> associated_buffer;
+    LayerType layer_type;
 };
 }
 }

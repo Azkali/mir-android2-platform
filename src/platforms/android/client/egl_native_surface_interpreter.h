@@ -20,9 +20,13 @@
 #define MIR_CLIENT_NATIVE_ANDROID_EGL_NATIVE_SURFACE_INTERPRETER_H_
 
 #include "android_driver_interpreter.h"
+#include "egl_sync_extensions.h"
 #include "mir/client/egl_native_surface.h"
 #include "mir/optional_value.h"
 #include <boost/throw_exception.hpp>
+
+#include <mutex>
+#include <queue>
 
 namespace mir
 {
@@ -46,12 +50,15 @@ public:
     void set_native_key(void* rs) { native_key = rs; }
     void set_surface(EGLNativeSurface* surface);
 
-
-    graphics::android::NativeBuffer* driver_requests_buffer() override;
+    std::shared_ptr<graphics::android::NativeBuffer> driver_requests_buffer(int) override;
     void driver_returns_buffer(ANativeWindowBuffer*, int fence_fd) override;
+    void driver_cancels_buffer(ANativeWindowBuffer*, int fence) override;
+    void lock_buffer(ANativeWindowBuffer*) override;
     void dispatch_driver_request_format(int format) override;
     void dispatch_driver_request_buffer_count(unsigned int count) override;
     void dispatch_driver_request_buffer_size(geometry::Size size) override;
+    void dispatch_driver_request_damage(geometry::Rectangles areas) override;
+    void dispatch_driver_usage_bits(uint64_t) override;
     int  driver_requests_info(int key) const override;
     void sync_to_display(bool) override;
 
@@ -63,9 +70,15 @@ private:
     std::shared_ptr<graphics::android::SyncFileOps> const sync_ops;
     unsigned int const hardware_bits;
     unsigned int const software_bits;
+    uint64_t driver_usage_bits;
     int last_buffer_age;
     mir::optional_value<unsigned int> cache_count;
     mir::optional_value<mir::geometry::Size> requested_size;
+    std::queue<std::shared_ptr<graphics::android::NativeBuffer> > cancelled_buffers;
+    std::queue<std::shared_ptr<graphics::android::NativeBuffer> > queue_tracker;
+    std::mutex mutex;
+    mir::graphics::EGLSyncExtensions egl;
+    bool use_egl_sync;
 };
 }
 }

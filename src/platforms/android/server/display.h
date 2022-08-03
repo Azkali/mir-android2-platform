@@ -96,6 +96,7 @@ public:
 private:
     void on_hotplug();
     void on_vsync(DisplayName, graphics::Frame::Timestamp);
+    void on_refresh();
 
     std::shared_ptr<DisplayReport> const display_report;
     std::shared_ptr<NativeWindowReport> const native_window_report;

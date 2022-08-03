@@ -48,7 +48,23 @@ bool plane_alpha_is_translucent(mg::Renderable const& renderable)
 
 bool mga::HwcDevice20::compatible_renderlist(RenderableList const& list)
 {
-    return false;
+    if (list.empty())
+        return false;
+
+    for (auto const& renderable : list)
+    {
+        // TODO: enable planeAlpha for (hwc version >= 1.2), 90 deg rotation
+        static glm::mat4 const identity(1, 0, 0, 0,  //
+                                        0, 1, 0, 0,  //
+                                        0, 0, 1, 0,  //
+                                        0, 0, 0, 1);
+        if (plane_alpha_is_translucent(*renderable) ||
+            renderable->transformation() != identity)
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool mga::HwcDevice::compatible_renderlist(RenderableList const& list)

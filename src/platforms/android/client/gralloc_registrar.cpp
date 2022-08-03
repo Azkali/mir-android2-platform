@@ -16,6 +16,7 @@
  * Authored by: Kevin DuBois <kevin.dubois@canonical.com>
  */
 
+#include "cutils/native_handle.h"
 #include "mir/graphics/platform_ipc_operations.h"
 #include "egl_sync_fence.h"
 #include "android_native_buffer.h"
@@ -26,6 +27,7 @@
 
 
 #include <boost/throw_exception.hpp>
+#include <memory>
 #include <stdexcept>
 
 namespace mg = mir::graphics;
@@ -52,8 +54,16 @@ private:
 
 }
 
-mcla::GrallocRegistrar::GrallocRegistrar(const std::shared_ptr<mga::HybrisGralloc>& hybris_gralloc) :
-    hybris_gralloc(hybris_gralloc)
+int mcla::RealNativeHandleOps::close(const native_handle_t* h)
+{
+    return native_handle_close(h);
+}
+
+mcla::GrallocRegistrar::GrallocRegistrar(
+        const std::shared_ptr<mga::HybrisGralloc>& hybris_gralloc,
+        const std::shared_ptr<NativeHandleOps>& native_handle_ops) :
+    hybris_gralloc(hybris_gralloc),
+    native_handle_ops(native_handle_ops)
 {
 }
 
@@ -128,7 +138,7 @@ std::shared_ptr<mga::NativeBuffer> mcla::GrallocRegistrar::register_buffer(
     }
     if (handle != out_handle)
     {
-        native_handle_close(handle);
+        native_handle_ops->close(handle);
         ::operator delete(handle);
         handle = const_cast<native_handle_t*>(out_handle);
 

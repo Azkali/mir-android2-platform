@@ -378,7 +378,9 @@ mcla::AndroidClientPlatform::AndroidClientPlatform(
 std::shared_ptr<mcl::ClientBufferFactory> mcla::AndroidClientPlatform::create_buffer_factory()
 {
     auto hybris_gralloc = std::make_shared<mga::HybrisGrallocImpl>();
-    auto registrar = std::make_shared<mcla::GrallocRegistrar>(hybris_gralloc);
+    auto native_handle_ops = std::make_shared<mcla::RealNativeHandleOps>();
+    auto registrar = std::make_shared<mcla::GrallocRegistrar>(hybris_gralloc, native_handle_ops);
+
     return std::make_shared<mcla::AndroidClientBufferFactory>(registrar);
 }
 

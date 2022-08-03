@@ -30,10 +30,25 @@ namespace client
 namespace android
 {
 
+class NativeHandleOps
+{
+public:
+    virtual ~NativeHandleOps() = default;
+    virtual int close(const native_handle_t* h) = 0;
+};
+
+class RealNativeHandleOps : public NativeHandleOps
+{
+public:
+    int close(const native_handle_t* h) override;
+};
+
 class GrallocRegistrar : public BufferRegistrar
 {
 public:
-    GrallocRegistrar(std::shared_ptr<graphics::android::HybrisGralloc> const& hybris_gralloc);
+    GrallocRegistrar(
+        std::shared_ptr<graphics::android::HybrisGralloc> const& hybris_gralloc,
+        std::shared_ptr<NativeHandleOps> const& native_handle_ops);
 
     std::shared_ptr<graphics::android::NativeBuffer> register_buffer(
         MirBufferPackage& package,
@@ -44,6 +59,7 @@ public:
 
 private:
     std::shared_ptr<graphics::android::HybrisGralloc> hybris_gralloc;
+    std::shared_ptr<NativeHandleOps> native_handle_ops;
 };
 
 }

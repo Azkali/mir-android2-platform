@@ -10,10 +10,8 @@ then
 fi
 
 packages="\
-    mir-client-platform-android:MIR_CLIENT_PLATFORM_ABI \
-    mir-client-platform-android-caf:MIR_CLIENT_PLATFORM_ABI \
-    mir-platform-graphics-android:MIR_SERVER_GRAPHICS_PLATFORM_ABI \
-    mir-platform-graphics-android-caf:MIR_SERVER_GRAPHICS_PLATFORM_ABI"
+    mir-client-platform-android2-:MIR_CLIENT_PLATFORM_ABI \
+    mir-platform-graphics-android2-:MIR_SERVER_GRAPHICS_PLATFORM_ABI"
 
 package_name()
 {
@@ -198,7 +196,7 @@ report_unknown_package()
 
 check_for_unknown_packages()
 {
-    local control_pkgs="$(grep "Package:" debian/control | cut -d ":" -f 2 | grep "[[:digit:]]$" | tr -d ' [0-9]' | tr '\n' ' ')"
+    local control_pkgs="$(sed -n -E -e 's/Package: (.*-)[0-9]+$/\1/p' debian/control | tr '\n' ' ')"
     for p in $control_pkgs;
     do
         local result="$(echo "${packages}" | grep -v "\b${p}:")"

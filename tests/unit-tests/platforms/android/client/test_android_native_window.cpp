@@ -21,6 +21,7 @@
 #include "native_window_report.h"
 #include "mir/client/egl_native_surface.h"
 #include "mir/test/doubles/mock_android_native_buffer.h"
+#include "mir/test/doubles/mock_egl.h"
 #include "mir/test/doubles/stub_android_native_buffer.h"
 
 #include <gmock/gmock.h>
@@ -30,6 +31,7 @@
 using namespace testing;
 namespace mga=mir::graphics::android;
 namespace mtd=mir::test::doubles;
+namespace geom=mir::geometry;
 
 namespace
 {
@@ -47,12 +49,16 @@ public:
     MockAndroidDriverInterpreter()
      : buffer(std::make_shared<mtd::StubAndroidNativeBuffer>())
     {
-        ON_CALL(*this, driver_requests_buffer())
-            .WillByDefault(Return(buffer.get()));
+        ON_CALL(*this, driver_requests_buffer(_))
+            .WillByDefault(Return(buffer));
     }
-    MOCK_METHOD0(driver_requests_buffer, mga::NativeBuffer*());
+    MOCK_METHOD1(driver_requests_buffer, std::shared_ptr<mga::NativeBuffer>(int));
     MOCK_METHOD2(driver_returns_buffer, void(ANativeWindowBuffer*, int));
+    MOCK_METHOD2(driver_cancels_buffer, void(ANativeWindowBuffer*, int));
+    MOCK_METHOD1(lock_buffer, void(ANativeWindowBuffer*));
     MOCK_METHOD1(dispatch_driver_request_format, void(int));
+    MOCK_METHOD1(dispatch_driver_request_damage, void(geom::Rectangles));
+    MOCK_METHOD1(dispatch_driver_usage_bits, void(uint64_t));
     MOCK_CONST_METHOD1(driver_requests_info, int(int));
     MOCK_METHOD1(sync_to_display, void(bool));
     MOCK_METHOD1(dispatch_driver_request_buffer_count, void(unsigned int));
@@ -67,6 +73,7 @@ protected:
     std::shared_ptr<MockAndroidDriverInterpreter> const mock_driver_interpreter =
         std::make_shared<NiceMock<MockAndroidDriverInterpreter>>();
     std::shared_ptr<MockReport> const mock_report = std::make_shared<NiceMock<MockReport>>();
+    mtd::MockEGL mock_egl;
     mga::MirNativeWindow mir_native_window{mock_driver_interpreter, mock_report};
     ANativeWindow& window = mir_native_window;
     int const failure_code{-1};
@@ -167,9 +174,9 @@ TEST_F(AndroidNativeWindowTest, native_window_dequeue_returns_right_buffer)
     EXPECT_CALL(*mock_buffer, copy_fence())
         .Times(1)
         .WillOnce(Return(fake_fd));
-    EXPECT_CALL(*mock_driver_interpreter, driver_requests_buffer())
+    EXPECT_CALL(*mock_driver_interpreter, driver_requests_buffer(_))
         .Times(1)
-        .WillOnce(Return(mock_buffer.get()));
+        .WillOnce(Return(mock_buffer));
 
     int fence_fd;
     ANativeWindowBuffer* returned_buffer;
@@ -187,7 +194,7 @@ TEST_F(AndroidNativeWindowTest, native_window_dequeue_returns_previously_cancell
     auto rc = window.cancelBuffer(&window, &buffer, fence_fd);
     EXPECT_EQ(0, rc);
 
-    EXPECT_CALL(*mock_driver_interpreter, driver_requests_buffer())
+    EXPECT_CALL(*mock_driver_interpreter, driver_requests_buffer(_))
         .Times(0);
 
     ANativeWindowBuffer* dequeued_buffer;
@@ -209,9 +216,9 @@ TEST_F(AndroidNativeWindowTest, native_window_dequeue_deprecated_returns_right_b
     ANativeWindowBuffer* returned_buffer;
     auto mock_buffer = std::make_shared<NiceMock<mtd::MockAndroidNativeBuffer>>();
 
-    EXPECT_CALL(*mock_driver_interpreter, driver_requests_buffer())
+    EXPECT_CALL(*mock_driver_interpreter, driver_requests_buffer(_))
         .Times(1)
-        .WillOnce(Return(mock_buffer.get()));
+        .WillOnce(Return(mock_buffer));
     EXPECT_CALL(*mock_buffer, ensure_available_for(mga::BufferAccess::write))
         .Times(1);
     EXPECT_CALL(*mock_buffer, copy_fence())
@@ -229,7 +236,7 @@ TEST_F(AndroidNativeWindowTest, native_window_dequeue_deprecated_returns_previou
     auto rc = window.cancelBuffer_DEPRECATED(&window, &buffer);
     EXPECT_EQ(0, rc);
 
-    EXPECT_CALL(*mock_driver_interpreter, driver_requests_buffer())
+    EXPECT_CALL(*mock_driver_interpreter, driver_requests_buffer(_))
         .Times(0);
 
     ANativeWindowBuffer* dequeued_buffer;
@@ -344,11 +351,12 @@ TEST_F(AndroidNativeWindowTest, native_window_cancel_hook_does_not_call_driver_i
 
 TEST_F(AndroidNativeWindowTest, returns_error_on_dequeue_buffer_failure)
 {
-    EXPECT_CALL(*mock_driver_interpreter, driver_requests_buffer())
+    EXPECT_CALL(*mock_driver_interpreter, driver_requests_buffer(_))
         .WillOnce(Throw(std::runtime_error("")))
         .WillOnce(Throw(std::runtime_error("")));
 
-    EXPECT_THAT(window.dequeueBuffer(&window, nullptr, nullptr), Eq(failure_code));
+    int fence_fd = -1;
+    EXPECT_THAT(window.dequeueBuffer(&window, nullptr, &fence_fd), Eq(failure_code));
     EXPECT_THAT(window.dequeueBuffer_DEPRECATED(&window, nullptr), Eq(failure_code));
 }
 

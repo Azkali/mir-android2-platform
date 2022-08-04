@@ -42,7 +42,7 @@ public:
     {
     }
 
-    mir::graphics::android::NativeBuffer* driver_requests_buffer() override
+    std::shared_ptr<mir::graphics::android::NativeBuffer> driver_requests_buffer(int) override
     {
         return nullptr;
     }
@@ -51,7 +51,23 @@ public:
     {
     }
 
+    void driver_cancels_buffer(ANativeWindowBuffer*, int) override
+    {
+    }
+
+    void lock_buffer(ANativeWindowBuffer*) override
+    {
+    }
+
     void dispatch_driver_request_format(int) override
+    {
+    }
+
+    void dispatch_driver_request_damage(geometry::Rectangles) override
+    {
+    }
+
+    void dispatch_driver_usage_bits(uint64_t) override
     {
     }
 

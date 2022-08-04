@@ -91,8 +91,8 @@ TEST_F(ServerRenderWindow, returns_buffer_on_request)
     std::shared_ptr<mga::NativeBuffer> tmp2 = stub_buffer;
     EXPECT_CALL(*mock_cache, store_buffer(tmp, tmp2));
 
-    auto rc_buffer = render_window.driver_requests_buffer();
-    EXPECT_EQ(stub_buffer.get(), rc_buffer);
+    auto rc_buffer = render_window.driver_requests_buffer(-1);
+    EXPECT_EQ(stub_buffer, rc_buffer);
 }
 
 TEST_F(ServerRenderWindow, updates_fences_and_returns_buffer_on_queue)
@@ -106,7 +106,7 @@ TEST_F(ServerRenderWindow, updates_fences_and_returns_buffer_on_queue)
     EXPECT_CALL(*mock_buffer, native_buffer_handle())
         .WillOnce(Return(stub_buffer));
 
-    render_window.driver_requests_buffer();
+    render_window.driver_requests_buffer(-1);
     Mock::VerifyAndClearExpectations(mock_fb_bundle.get());
 
     std::shared_ptr<mg::Buffer> buf1 = mock_buffer;
@@ -133,7 +133,7 @@ TEST_F(ServerRenderWindow, clears_fence_when_quirk_present)
     EXPECT_CALL(*mock_buffer, native_buffer_handle())
         .WillOnce(Return(stub_buffer));
 
-    render_window.driver_requests_buffer();
+    render_window.driver_requests_buffer(-1);
     Mock::VerifyAndClearExpectations(mock_fb_bundle.get());
 
     std::shared_ptr<mg::Buffer> buf1 = mock_buffer;

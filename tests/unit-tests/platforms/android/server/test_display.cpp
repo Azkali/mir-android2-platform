@@ -655,7 +655,7 @@ TEST_F(Display, keeps_subscription_to_hotplug)
     auto use_count_before = subscription.use_count();
     stub_db_factory->with_next_config([&](mtd::MockHwcConfiguration& mock_config)
     {
-        EXPECT_CALL(mock_config, subscribe_to_config_changes(_,_))
+        EXPECT_CALL(mock_config, subscribe_to_config_changes(_,_,_))
             .WillOnce(Return(subscription));
     });
     {
@@ -696,7 +696,7 @@ TEST_F(Display, will_requery_display_configuration_after_hotplug)
 
     stub_db_factory->with_next_config([&](mtd::MockHwcConfiguration& mock_config)
     {
-        EXPECT_CALL(mock_config, subscribe_to_config_changes(_,_))
+        EXPECT_CALL(mock_config, subscribe_to_config_changes(_,_,_))
             .WillOnce(DoAll(SaveArg<0>(&hotplug_fn), Return(subscription)));
 
         EXPECT_CALL(mock_config, active_config_for(mga::DisplayName::primary))
@@ -751,7 +751,7 @@ TEST_F(Display, returns_correct_dbs_with_external_and_primary_output_at_start)
                 return mtd::StubDisplayConfigurationOutput{external_output_id,
                     {20,20}, {4,4}, mir_pixel_format_abgr_8888, 50.0f, external_connected};
             }));
-        EXPECT_CALL(mock_config, subscribe_to_config_changes(_,_))
+        EXPECT_CALL(mock_config, subscribe_to_config_changes(_,_,_))
             .WillOnce(DoAll(SaveArg<0>(&hotplug_fn), Return(std::make_shared<char>('2'))));
     });
 
@@ -807,7 +807,7 @@ TEST_F(Display, turns_external_display_on_with_hotplug)
     bool external_connected = true;
     stub_db_factory->with_next_config([&](mtd::MockHwcConfiguration& mock_config)
     {
-        EXPECT_CALL(mock_config, subscribe_to_config_changes(_,_))
+        EXPECT_CALL(mock_config, subscribe_to_config_changes(_,_,_))
             .WillOnce(DoAll(SaveArg<0>(&hotplug_fn), Return(std::make_shared<char>('2'))));
         ON_CALL(mock_config, active_config_for(mga::DisplayName::primary))
             .WillByDefault(Return(mtd::StubDisplayConfigurationOutput{
@@ -915,7 +915,7 @@ TEST_F(Display, reports_vsync)
     EXPECT_CALL(*report, report_vsync(_, _));
     stub_db_factory->with_next_config([&](mtd::MockHwcConfiguration& mock_config)
     {
-        EXPECT_CALL(mock_config, subscribe_to_config_changes(_,_))
+        EXPECT_CALL(mock_config, subscribe_to_config_changes(_,_,_))
             .WillOnce(DoAll(SaveArg<1>(&vsync_fn), Return(std::make_shared<char>('2'))));
     });
 
@@ -979,7 +979,7 @@ TEST_F(Display, applying_orientation_after_hotplug)
                 return mtd::StubDisplayConfigurationOutput{external_output_id,
                     {20,20}, {4,4}, mir_pixel_format_abgr_8888, 50.0f, external_connected};
             }));
-        EXPECT_CALL(mock_config, subscribe_to_config_changes(_,_))
+        EXPECT_CALL(mock_config, subscribe_to_config_changes(_,_,_))
             .WillOnce(DoAll(SaveArg<0>(&hotplug_fn), Return(std::make_shared<char>('2'))));
     });
 
@@ -1052,7 +1052,7 @@ TEST_F(Display, does_not_remove_dbs_when_enumerating_display_groups)
                 return mtd::StubDisplayConfigurationOutput{external_output_id,
                     {20,20}, {4,4}, mir_pixel_format_abgr_8888, 50.0f, external_connected};
             }));
-        EXPECT_CALL(mock_config, subscribe_to_config_changes(_,_))
+        EXPECT_CALL(mock_config, subscribe_to_config_changes(_,_,_))
             .WillOnce(DoAll(SaveArg<0>(&hotplug_fn), Return(std::make_shared<char>('2'))));
     });
 
@@ -1186,7 +1186,7 @@ TEST_F(Display, does_invalidate_display_buffers_when_it_promised_to)
                 return mtd::StubDisplayConfigurationOutput{external_output_id,
                     {20,20}, {4,4}, mir_pixel_format_abgr_8888, 50.0f, external_connected};
             }));
-        EXPECT_CALL(mock_config, subscribe_to_config_changes(_,_))
+        EXPECT_CALL(mock_config, subscribe_to_config_changes(_,_,_))
             .WillOnce(DoAll(SaveArg<0>(&hotplug_fn), Return(std::make_shared<char>('2'))));
     });
 

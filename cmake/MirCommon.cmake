@@ -98,10 +98,13 @@ function (mir_discover_tests_internal EXECUTABLE TEST_ENV_OPTIONS DETECT_FD_LEAK
   endif()
 
   # FIXME: Skip tests that are broken when writing HWC2 support.
-  set (test_hwc2_broken "DisplayTestGeneric.*:ResourceFactoryTest.*:AndroidGraphicsPlatform.*:GraphicsPlatform.*:DeviceDetection.two_buffers_by_default:DeviceQuirks.number_of_framebuffers_quirk_can_be_disabled")
+  set (test_broken "DisplayTestGeneric.*:ResourceFactoryTest.*:AndroidGraphicsPlatform.*:GraphicsPlatform.*:DeviceDetection.two_buffers_by_default:DeviceQuirks.number_of_framebuffers_quirk_can_be_disabled")
+
+  # FIXME: Skip tests that are broken by https://gitlab.com/ubports/development/core/hybris-support/mir-android2-platform/-/merge_requests/2
+  set (test_broken "${test_broken}:AndroidNativeWindowTest.native_window_dequeue_returns_previously_cancelled_buffer:AndroidNativeWindowTest.native_window_dequeue_deprecated_returns_previously_cancelled_buffer")
 
   # Final commands
-  set(test_cmd "${test_cmd}" "--gtest_filter=-${test_no_memcheck_filter}:${test_exclusion_filter}:${test_hwc2_broken}")
+  set(test_cmd "${test_cmd}" "--gtest_filter=-${test_no_memcheck_filter}:${test_exclusion_filter}:${test_broken}")
   set(test_cmd_no_memcheck "${test_cmd_no_memcheck}" "--gtest_death_test_style=threadsafe" "--gtest_filter=${test_no_memcheck_filter}:-${test_exclusion_filter}")
   if(DETECT_FD_LEAKS)
     set(test_cmd ${CMAKE_SOURCE_DIR}/tools/detect_fd_leaks.bash ${test_cmd})

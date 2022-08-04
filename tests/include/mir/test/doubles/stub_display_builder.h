@@ -47,7 +47,7 @@ struct MockHwcConfiguration : public graphics::android::HwcConfiguration
     {
         using namespace testing;
         StubDisplayConfig config({{true, true}, {false, false}});
-        ON_CALL(*this, subscribe_to_config_changes(_,_)).WillByDefault(Return(nullptr));
+        ON_CALL(*this, subscribe_to_config_changes(_,_,_)).WillByDefault(Return(nullptr));
         ON_CALL(*this, active_config_for(graphics::android::DisplayName::primary))
             .WillByDefault(testing::Return(config.outputs[0]));
         ON_CALL(*this, active_config_for(graphics::android::DisplayName::external))
@@ -55,9 +55,11 @@ struct MockHwcConfiguration : public graphics::android::HwcConfiguration
     }
     MOCK_METHOD2(power_mode, void(graphics::android::DisplayName, MirPowerMode));
     MOCK_METHOD1(active_config_for, graphics::DisplayConfigurationOutput(graphics::android::DisplayName));
-    MOCK_METHOD2(subscribe_to_config_changes,
+    MOCK_METHOD3(subscribe_to_config_changes,
         graphics::android::ConfigChangeSubscription(
-            std::function<void()> const&, std::function<void(graphics::android::DisplayName, mir::graphics::Frame::Timestamp)> const&));
+            std::function<void()> const&,
+            std::function<void(graphics::android::DisplayName, mir::graphics::Frame::Timestamp)> const&,
+            std::function<void()> const& refresh_cb));
 };
 
 struct StubHwcConfiguration : public graphics::android::HwcConfiguration
@@ -77,7 +79,8 @@ struct StubHwcConfiguration : public graphics::android::HwcConfiguration
     graphics::android::ConfigChangeSubscription subscribe_to_config_changes(
         std::function<void()> const&,
         std::function<void(graphics::android::DisplayName,
-                           graphics::Frame::Timestamp)> const&
+                           graphics::Frame::Timestamp)> const&,
+        std::function<void()> const&
         ) override
     {
         return nullptr;

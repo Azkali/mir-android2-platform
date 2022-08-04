@@ -49,7 +49,7 @@ Homepage: https://launchpad.net/mir-android-platform
 # just go ahead. ~mir-team will notice and sync up the code again.
 Vcs-Git: https://code.launchpad.net/mir-android-platform
 
-Package: mir-android-tests
+Package: mir-android2-tests
 Architecture: i386 amd64 armhf arm64
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends},

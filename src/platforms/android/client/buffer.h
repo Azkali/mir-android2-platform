@@ -58,11 +58,11 @@ public:
 private:
 
     std::shared_ptr<BufferRegistrar> const buffer_registrar;
+    MirBufferPackage creation_package;
     std::shared_ptr<graphics::android::NativeBuffer> const native_buffer;
     MirPixelFormat const buffer_pf;
     geometry::Stride const buffer_stride;
     geometry::Size const buffer_size;
-    MirBufferPackage const creation_package;
 };
 
 }

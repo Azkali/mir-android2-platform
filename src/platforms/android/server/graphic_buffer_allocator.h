@@ -30,6 +30,8 @@
 #include "mir/graphics/graphic_buffer_allocator.h"
 #include "mir/graphics/wayland_allocator.h"
 
+#include <hybris_gralloc.h>
+
 #include <EGL/egl.h>
 
 namespace mir
@@ -61,6 +63,7 @@ class GraphicBufferAllocator:
 {
 public:
     GraphicBufferAllocator(
+        std::shared_ptr<HybrisGralloc> const& hybris_gralloc,
         std::shared_ptr<CommandStreamSyncFactory> const& cmdstream_sync_factory,
         std::shared_ptr<DeviceQuirks> const& quirks);
 
@@ -82,7 +85,7 @@ public:
         std::function<void()>&& on_release) override;
     void set_ctx(graphics::Display const& output);
 private:
-    std::shared_ptr<HybrisRegistarDevice> registar_device;
+    std::shared_ptr<HybrisGralloc> hybris_gralloc;
     std::shared_ptr<Gralloc> alloc_device;
     std::shared_ptr<EGLExtensions> const egl_extensions;
     std::shared_ptr<CommandStreamSyncFactory> const cmdstream_sync_factory;

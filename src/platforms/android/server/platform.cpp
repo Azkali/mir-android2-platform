@@ -20,6 +20,7 @@
 #include "platform.h"
 
 #include "graphic_buffer_allocator.h"
+#include "hybris_gralloc_impl.h"
 #include "mir/graphics/platform.h"
 #include "resource_factory.h"
 #include "display.h"
@@ -328,7 +329,9 @@ mir::UniqueModulePtr<mir::graphics::RenderingPlatform> create_rendering_platform
     else
         sync_factory = std::make_shared<mga::NullCommandStreamSyncFactory>();
 
-    auto const buffer_allocator = std::make_shared<mga::GraphicBufferAllocator>(sync_factory, quirks);
+    auto hybris_gralloc = std::make_shared<mga::HybrisGrallocImpl>();
+
+    auto const buffer_allocator = std::make_shared<mga::GraphicBufferAllocator>(hybris_gralloc, sync_factory, quirks);
     return mir::make_module_ptr<mga::GrallocPlatform>(buffer_allocator);
 }
 

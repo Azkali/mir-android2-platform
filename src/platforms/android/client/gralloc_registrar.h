@@ -21,7 +21,7 @@
 #define MIR_CLIENT_ANDROID_GRALLOC_REGISTRAR_H_
 
 #include "buffer_registrar.h"
-#include <hardware/gralloc.h>
+#include "hybris_gralloc.h"
 
 namespace mir
 {
@@ -30,20 +30,36 @@ namespace client
 namespace android
 {
 
+class NativeHandleOps
+{
+public:
+    virtual ~NativeHandleOps() = default;
+    virtual int close(const native_handle_t* h) = 0;
+};
+
+class RealNativeHandleOps : public NativeHandleOps
+{
+public:
+    int close(const native_handle_t* h) override;
+};
+
 class GrallocRegistrar : public BufferRegistrar
 {
 public:
-    GrallocRegistrar(std::shared_ptr<const gralloc_module_t> const& gralloc_dev);
+    GrallocRegistrar(
+        std::shared_ptr<graphics::android::HybrisGralloc> const& hybris_gralloc,
+        std::shared_ptr<NativeHandleOps> const& native_handle_ops);
 
     std::shared_ptr<graphics::android::NativeBuffer> register_buffer(
-        MirBufferPackage const& package,
+        MirBufferPackage& package,
         MirPixelFormat pf) const;
     std::shared_ptr<char> secure_for_cpu(
         std::shared_ptr<graphics::android::NativeBuffer> const& handle,
         geometry::Rectangle const);
 
 private:
-    std::shared_ptr<const gralloc_module_t> gralloc_module;
+    std::shared_ptr<graphics::android::HybrisGralloc> hybris_gralloc;
+    std::shared_ptr<NativeHandleOps> native_handle_ops;
 };
 
 }

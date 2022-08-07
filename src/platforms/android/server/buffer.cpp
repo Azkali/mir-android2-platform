@@ -47,10 +47,10 @@ void mga::BindResolverTexTarget::bind()
     upload_to_texture();
 }
 
-mga::Buffer::Buffer(gralloc_module_t const* hw_module,
+mga::Buffer::Buffer(std::shared_ptr<HybrisGralloc> const& hybris_gralloc,
     std::shared_ptr<NativeBuffer> const& buffer_handle,
     std::shared_ptr<mg::EGLExtensions> const& extensions)
-    : hw_module(hw_module),
+    : hybris_gralloc(hybris_gralloc),
       native_buffer(buffer_handle),
       egl_extensions(extensions)
 {
@@ -172,14 +172,14 @@ void mga::Buffer::write(unsigned char const* data, size_t data_size)
     if (buffer_size_bytes != data_size)
         BOOST_THROW_EXCEPTION(std::logic_error("Size of pixels is not equal to size of buffer"));
 
-    char* vaddr{nullptr};
+    void* vaddr{nullptr};
     int usage = GRALLOC_USAGE_SW_WRITE_OFTEN;
     int width = size().width.as_uint32_t();
     int height = size().height.as_uint32_t();
     int top = 0;
     int left = 0;
-    if (hw_module->lock(
-            hw_module, native_buffer->handle(), usage, top, left, width, height, reinterpret_cast<void**>(&vaddr)) ||
+    if (hybris_gralloc->lock(
+            native_buffer->handle(), usage, top, left, width, height, vaddr) ||
         !vaddr)
         BOOST_THROW_EXCEPTION(std::runtime_error("error securing buffer for client cpu use"));
 
@@ -188,10 +188,10 @@ void mga::Buffer::write(unsigned char const* data, size_t data_size)
     {
         int line_offset_in_buffer = stride().as_uint32_t()*i;
         int line_offset_in_source = bpp*width*i;
-        memcpy(vaddr + line_offset_in_buffer, data + line_offset_in_source, width * bpp);
+        memcpy((char *)vaddr + line_offset_in_buffer, data + line_offset_in_source, width * bpp);
     }
 
-    hw_module->unlock(hw_module, native_buffer->handle());
+    hybris_gralloc->unlock(native_buffer->handle());
 }
 
 void mga::Buffer::read(std::function<void(unsigned char const*)> const& do_with_data)
@@ -201,21 +201,21 @@ void mga::Buffer::read(std::function<void(unsigned char const*)> const& do_with_
     native_buffer->ensure_available_for(mga::BufferAccess::read);
     auto buffer_size = size();
 
-    unsigned char* vaddr{nullptr};
+    void* vaddr{nullptr};
     int usage = GRALLOC_USAGE_SW_READ_OFTEN;
     int width = buffer_size.width.as_uint32_t();
     int height = buffer_size.height.as_uint32_t();
 
     int top = 0;
     int left = 0;
-    if ((hw_module->lock(
-        hw_module, native_buffer->handle(), usage, top, left, width, height, reinterpret_cast<void**>(&vaddr)) ) ||
+    if ((hybris_gralloc->lock(
+        native_buffer->handle(), usage, top, left, width, height, vaddr) ) ||
         !vaddr)
         BOOST_THROW_EXCEPTION(std::runtime_error("error securing buffer for client cpu use"));
 
-    do_with_data(vaddr);
+    do_with_data((unsigned char*) vaddr);
 
-    hw_module->unlock(hw_module, native_buffer->handle());
+    hybris_gralloc->unlock(native_buffer->handle());
 }
 
 mg::NativeBufferBase* mga::Buffer::native_buffer_base()

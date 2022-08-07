@@ -26,7 +26,7 @@
 #include "mir/mir_buffer_stream.h"
 #include "android_client_platform.h"
 #include "gralloc_registrar.h"
-#include "hybris_registar_device.h"
+#include "hybris_gralloc_impl.h"
 #include "android_client_buffer_factory.h"
 #include "egl_native_surface_interpreter.h"
 #include "native_window_report.h"
@@ -377,8 +377,10 @@ mcla::AndroidClientPlatform::AndroidClientPlatform(
 
 std::shared_ptr<mcl::ClientBufferFactory> mcla::AndroidClientPlatform::create_buffer_factory()
 {
-    auto registar_device = std::make_shared<mga::HybrisRegistarDevice>();
-    auto registrar = std::make_shared<mcla::GrallocRegistrar>(registar_device);
+    auto hybris_gralloc = std::make_shared<mga::HybrisGrallocImpl>();
+    auto native_handle_ops = std::make_shared<mcla::RealNativeHandleOps>();
+    auto registrar = std::make_shared<mcla::GrallocRegistrar>(hybris_gralloc, native_handle_ops);
+
     return std::make_shared<mcla::AndroidClientBufferFactory>(registrar);
 }
 

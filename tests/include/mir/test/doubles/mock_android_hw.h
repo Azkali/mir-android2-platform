@@ -18,7 +18,6 @@
 #ifndef MIR_TEST_DOUBLES_MOCK_ANDROID_HW_H_
 #define MIR_TEST_DOUBLES_MOCK_ANDROID_HW_H_
 
-#include "mir/test/doubles/mock_android_alloc_device.h"
 #include "mir/test/doubles/mock_hwc_composer_device_1.h"
 
 #include <hardware/hardware.h>
@@ -63,10 +62,8 @@ public:
     MOCK_METHOD2(hw_get_module, int(const char *id, const struct hw_module_t**));
 
     bool open_count_matches_close();
-    std::shared_ptr<alloc_device_t> mock_alloc_device;
     std::shared_ptr<hwc_composer_device_1> mock_hwc_device;
 
-    std::shared_ptr<HardwareModuleStub> mock_gralloc_module;
     std::shared_ptr<HardwareModuleStub> mock_hwc_module;
 };
 

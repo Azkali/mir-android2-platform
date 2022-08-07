@@ -23,6 +23,7 @@
 #include "display_buffer.h"
 #include "display_device.h"
 #include "framebuffers.h"
+#include "hybris_gralloc_impl.h"
 #include "real_hwc_wrapper.h"
 #include "hwc_report.h"
 #include "hwc_configuration.h"
@@ -72,9 +73,10 @@ mga::HalComponentFactory::HalComponentFactory(
     }
 
     start_fake_surfaceflinger();
+    auto hybris_gralloc = std::make_shared<mga::HybrisGrallocImpl>();
     command_stream_sync_factory = create_command_stream_sync_factory();
     buffer_allocator = std::make_shared<mga::GraphicBufferAllocator>(
-        command_stream_sync_factory, quirks);
+        hybris_gralloc, command_stream_sync_factory, quirks);
 }
 
 std::unique_ptr<mg::CommandStreamSync> mga::HalComponentFactory::create_command_stream_sync()

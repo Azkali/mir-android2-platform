@@ -133,6 +133,8 @@ std::shared_ptr<mga::NativeBuffer> mcla::EGLNativeSurfaceInterpreter::driver_req
         cancelled_buffers.pop();
         buffer_to_driver->reset_fence();
         buffer_to_driver->update_usage(fence, mga::BufferAccess::write);
+
+        queue_tracker.push(buffer_to_driver);
         return buffer_to_driver;
     }
     else

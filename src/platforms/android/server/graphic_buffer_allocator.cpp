@@ -111,7 +111,7 @@ std::shared_ptr<mg::Buffer> mga::GraphicBufferAllocator::alloc_buffer(
         alloc_device->alloc_buffer(
             properties.size,
             mga::to_android_format(properties.format),
-            mga::convert_to_android_usage(properties.usage)),
+            mga::convert_to_android_usage(properties.usage) | GRALLOC_USAGE_HW_VIDEO_ENCODER),
         egl_extensions);
 }
 

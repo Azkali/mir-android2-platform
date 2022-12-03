@@ -281,7 +281,9 @@ TEST_F(HwcConfiguration, subscribes_to_hotplug_and_vsync)
     unsigned int hotplug_call_count{0};
     unsigned int vsync_call_count{0};
     auto subscription = config.subscribe_to_config_changes(
-        [&]{ hotplug_call_count++; }, [&](mga::DisplayName, mg::Frame::Timestamp){ vsync_call_count++; });
+        [&]{ hotplug_call_count++; },
+        [&](mga::DisplayName, mg::Frame::Timestamp){ vsync_call_count++; },
+        [&](){ /* TODO: count refresh */ });
     hotplug_fn(mga::DisplayName::primary, true);
     hotplug_fn(mga::DisplayName::primary, true);
     using namespace std::literals::chrono_literals;

@@ -19,6 +19,7 @@
 #include "mir/client/client_buffer.h"
 #include "mir/client/egl_native_surface.h"
 #include "mir/test/doubles/mock_client_buffer.h"
+#include "mir/test/doubles/mock_egl.h"
 #include "mir/test/doubles/stub_android_native_buffer.h"
 #include "mir/test/fake_shared.h"
 #include "mir_toolkit/mir_native_buffer.h"
@@ -79,6 +80,7 @@ protected:
 
     MirWindowParameters surf_params;
     std::shared_ptr<mtd::MockClientBuffer> mock_client_buffer;
+    mtd::MockEGL mock_egl;
 };
 #pragma GCC diagnostic pop
 
@@ -90,7 +92,7 @@ TEST_F(AndroidInterpreter, gets_buffer_via_the_surface_on_request)
 
     EXPECT_CALL(mock_surface, get_current_buffer()).Times(1).WillOnce(Return(mock_client_buffer));
 
-    interpreter.driver_requests_buffer();
+    interpreter.driver_requests_buffer(-1);
 }
 
 TEST_F(AndroidInterpreter, gets_native_handle_from_returned_buffer)
@@ -104,21 +106,22 @@ TEST_F(AndroidInterpreter, gets_native_handle_from_returned_buffer)
     EXPECT_CALL(*mock_client_buffer, native_buffer_handle()).Times(1).WillOnce(Return(buffer));
     EXPECT_CALL(mock_surface, get_current_buffer()).Times(1).WillOnce(Return(mock_client_buffer));
 
-    auto returned_buffer = interpreter.driver_requests_buffer();
-    EXPECT_EQ(buffer.get(), returned_buffer);
+    auto returned_buffer = interpreter.driver_requests_buffer(-1);
+    EXPECT_EQ(buffer, returned_buffer);
 }
 
 TEST_F(AndroidInterpreter, advances_surface_on_buffer_return)
 {
     using namespace testing;
-    ANativeWindowBuffer buffer;
 
     testing::NiceMock<MockMirSurface> mock_surface{surf_params};
     mcla::EGLNativeSurfaceInterpreter interpreter(&mock_surface);
 
+    ON_CALL(mock_surface, get_current_buffer()).WillByDefault(Return(mock_surface.client_buffer));
     EXPECT_CALL(mock_surface, swap_buffers_sync()).Times(1);
 
-    interpreter.driver_returns_buffer(&buffer, -1);
+    auto buffer = interpreter.driver_requests_buffer(-1);
+    interpreter.driver_returns_buffer(buffer->anwb(), -1);
 }
 
 /* format is an int that is set by the driver. these are not the HAL_PIXEL_FORMATS in android */
@@ -302,12 +305,12 @@ TEST_F(AndroidInterpreter, pulls_buffer_age_out_of_last_buffer)
     EXPECT_THAT(interpreter.driver_requests_info(NATIVE_WINDOW_BUFFER_AGE), Eq(0));
 
     EXPECT_CALL(*mock_surface.client_buffer, age()).WillOnce(Return(99));
-    interpreter.driver_requests_buffer();
+    interpreter.driver_requests_buffer(-1);
     EXPECT_THAT(interpreter.driver_requests_info(NATIVE_WINDOW_BUFFER_AGE), Eq(99));
     EXPECT_THAT(interpreter.driver_requests_info(NATIVE_WINDOW_BUFFER_AGE), Eq(99));
 
     EXPECT_CALL(*mock_surface.client_buffer, age()).WillOnce(Return(91));
-    interpreter.driver_requests_buffer();
+    interpreter.driver_requests_buffer(-1);
     EXPECT_THAT(interpreter.driver_requests_info(NATIVE_WINDOW_BUFFER_AGE), Eq(91));
 }
 

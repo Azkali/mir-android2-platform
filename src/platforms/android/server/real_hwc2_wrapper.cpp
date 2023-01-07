@@ -145,6 +145,13 @@ static bool has_backpressure_property_enabled()
     auto const backpressure_val = device_info.get("MirAndroidPlatformServerBackpressure", "false");
     return (backpressure_val == "true" || backpressure_val == "1" || backpressure_val == "yes");
 }
+
+static bool flip_width_and_height_enabled()
+{
+    DeviceInfo device_info;
+    auto const flip_val = device_info.get("MirAndroidPlatformServerFlipWidthAndHeight", "false");
+    return (flip_val == "true" || flip_val == "1" || flip_val == "yes");
+}
 }
 
 int mga::RealHwc2Wrapper::composerSequenceId = 0;
@@ -152,7 +159,8 @@ int mga::RealHwc2Wrapper::composerSequenceId = 0;
 mga::RealHwc2Wrapper::RealHwc2Wrapper(
     std::shared_ptr<mga::HwcReport> const& report) :
     report(report),
-    avoid_backpressure(!has_backpressure_property_enabled())
+    avoid_backpressure(!has_backpressure_property_enabled()),
+    flip_width_and_height(flip_width_and_height_enabled())
 {
     std::unique_lock<std::mutex> lk(callback_lock);
 
@@ -513,10 +521,10 @@ int mga::RealHwc2Wrapper::display_attributes(
     for (int i = 0; attributes[i] != HWC_DISPLAY_NO_ATTRIBUTE; i++) {
         switch(attributes[i]) {
             case HWC_DISPLAY_WIDTH:
-                values[i] = config->width;
+                values[i] = !flip_width_and_height ? config->width : config->height;
                 break;
             case HWC_DISPLAY_HEIGHT:
-                values[i] = config->height;
+                values[i] = !flip_width_and_height ? config->height : config->width;
                 break;
             case HWC_DISPLAY_VSYNC_PERIOD:
                 values[i] = config->vsyncPeriod;

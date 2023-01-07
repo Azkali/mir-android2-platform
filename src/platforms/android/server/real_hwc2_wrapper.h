@@ -105,6 +105,7 @@ private:
     std::unordered_map<int, int> last_present_fence;
     std::unordered_map<int, bool> active_displays;
     bool avoid_backpressure;
+    bool flip_width_and_height;
 };
 
 }

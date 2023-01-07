@@ -27,6 +27,7 @@
 #include <stdexcept>
 #include <system_error>
 #include <chrono>
+#include <deviceinfo/deviceinfo.h>
 
 #define MIR_LOG_COMPONENT "android/server"
 #include "mir/log.h"
@@ -135,6 +136,13 @@ int dpi_to_mm(uint32_t dpi, int pixel_num)
     return length.as(geom::Length::Units::millimetres);
 }
 
+bool is_tablet_device()
+{
+    DeviceInfo device_info;
+    auto const flip_val = device_info.get("DeviceType", "phone");
+    return (flip_val == "tablet");
+}
+
 mg::DisplayConfigurationOutput populate_config(
     mga::DisplayName name,
     geom::Size pixel_size,
@@ -157,6 +165,8 @@ mg::DisplayConfigurationOutput populate_config(
     {
         type = mg::DisplayConfigurationOutputType::displayport;
         form_factor = mir_form_factor_monitor;
+    } else if (is_tablet_device()) {
+        form_factor = mir_form_factor_tablet;
     }
 
     return {

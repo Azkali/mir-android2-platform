@@ -57,6 +57,8 @@ struct GraphicBufferAllocator : Test
     int const sw_usage_flags
         {GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN |
          GRALLOC_USAGE_HW_COMPOSER | GRALLOC_USAGE_HW_TEXTURE};
+    int const video_encoder_flags
+        {GRALLOC_USAGE_HW_VIDEO_ENCODER};
 };
 }
 
@@ -169,7 +171,7 @@ TEST_F(GraphicBufferAllocator, adaptor_gralloc_usage_conversion_legacy_software)
         mg::BufferProperties{{1,1}, mir_pixel_format_abgr_8888, mg::BufferUsage::software});
     auto native = reinterpret_cast<mga::NativeBuffer*>(buffer->native_buffer_handle().get());
     ASSERT_THAT(native, NotNull());
-    EXPECT_THAT(native->anwb()->usage, Eq(sw_usage_flags));
+    EXPECT_THAT(native->anwb()->usage, Eq(sw_usage_flags | video_encoder_flags));
     EXPECT_THAT(native->anwb()->format, Eq(HAL_PIXEL_FORMAT_RGBA_8888));
 }
 
@@ -184,6 +186,6 @@ TEST_F(GraphicBufferAllocator, adaptor_gralloc_usage_conversion_legacy_hardware)
         mg::BufferProperties{{1,1}, mir_pixel_format_abgr_8888, mg::BufferUsage::hardware});
     auto native = reinterpret_cast<mga::NativeBuffer*>(buffer->native_buffer_handle().get());
     ASSERT_THAT(native, NotNull());
-    EXPECT_THAT(native->anwb()->usage, Eq(hw_usage_flags));
+    EXPECT_THAT(native->anwb()->usage, Eq(hw_usage_flags | video_encoder_flags));
     EXPECT_THAT(native->anwb()->format, Eq(HAL_PIXEL_FORMAT_RGBA_8888));
 }

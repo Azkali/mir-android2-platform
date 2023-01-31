@@ -19,6 +19,7 @@
 #include "mir/graphics/frame.h"
 #include "real_hwc2_wrapper.h"
 #include "hwc_layerlist.h"
+#include "swapping_gl_context.h"
 #include "native_buffer.h"
 #include "buffer.h"
 #include "hwc_report.h"
@@ -208,13 +209,23 @@ void mga::RealHwc2Wrapper::prepare(
             auto native_list = content.list.native_list();
 
             if (native_list->numHwLayers && layers.size() < 1) {
+                auto buffer_size = content.context.last_rendered_buffer()->size();
                 auto layer = hwc2_compat_display_create_layer(hwc2_display);
                 layers.push_back(layer);
 
+                // FIXME: use actual layer dimensions here, but make sure they are populated before prepare is called
+                // https://gitlab.com/ubports/development/core/hybris-support/mir-android2-platform/-/merge_requests/11
+                /*
                 auto left = native_list->hwLayers[0].displayFrame.left;
                 auto top = native_list->hwLayers[0].displayFrame.top;
                 auto width = native_list->hwLayers[0].displayFrame.right;
                 auto height = native_list->hwLayers[0].displayFrame.bottom;
+                */
+
+                int left = 0;
+                int top = 0;
+                int width = buffer_size.width.as_int();
+                int height = buffer_size.height.as_int();
 
                 hwc2_compat_layer_set_composition_type(layer, HWC2_COMPOSITION_CLIENT);
                 hwc2_compat_layer_set_blend_mode(layer, HWC2_BLEND_MODE_NONE);

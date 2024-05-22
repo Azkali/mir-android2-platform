@@ -76,9 +76,6 @@ static std::mutex callback_lock;
 
 static void refresh_hook(HWC2EventListener* listener, int32_t sequenceId, hwc2_display_t display)
 {
-    if (mga::RealHwc2Wrapper::composerSequenceId != sequenceId)
-        return;
-
     mga::Hwc2Callbacks const* callbacks{nullptr};
     if ((callbacks = reinterpret_cast<mga::Hwc2Callbacks const*>(listener)) && callbacks->self)
     {
@@ -90,9 +87,6 @@ static void refresh_hook(HWC2EventListener* listener, int32_t sequenceId, hwc2_d
 static void vsync_hook(HWC2EventListener* listener, int32_t sequenceId, hwc2_display_t display,
     int64_t timestamp)
 {
-    if (mga::RealHwc2Wrapper::composerSequenceId != sequenceId)
-        return;
-
     mga::Hwc2Callbacks const* callbacks{nullptr};
     if ((callbacks = reinterpret_cast<mga::Hwc2Callbacks const*>(listener)) && callbacks->self)
     {
@@ -108,9 +102,6 @@ static void vsync_hook(HWC2EventListener* listener, int32_t sequenceId, hwc2_dis
 static void hotplug_hook(HWC2EventListener* listener, int32_t sequenceId,
     hwc2_display_t display, bool connected, bool primaryDisplay)
 {
-    if (mga::RealHwc2Wrapper::composerSequenceId != sequenceId)
-        return;
-
     mga::Hwc2Callbacks const* callbacks{nullptr};
     std::unique_lock<std::mutex> lk(callback_lock);
 
@@ -178,7 +169,7 @@ mga::RealHwc2Wrapper::RealHwc2Wrapper(
 
     lk.unlock();
     hwc2_compat_device_register_callback(hwc2_device, reinterpret_cast<HWC2EventListener*>(&hwc_callbacks),
-        ++mga::RealHwc2Wrapper::composerSequenceId);
+        mga::RealHwc2Wrapper::composerSequenceId++);
     lk.lock();
 }
 

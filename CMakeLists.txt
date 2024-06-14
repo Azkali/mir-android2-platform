@@ -146,6 +146,9 @@ find_package(EGL REQUIRED)
 find_package(GLESv2 REQUIRED)
 find_package(GLM REQUIRED)
 find_package(Protobuf REQUIRED )
+# Workaround https://bugs.launchpad.net/bugs/2069474
+# Workaround given by https://github.com/chaincodelabs/libmultiprocess/issues/68#issuecomment-1135150171
+set(FOUND_LIBATOMIC TRUE)
 find_package(CapnProto REQUIRED)
 find_package(GLog REQUIRED)
 find_package(GFlags REQUIRED)

@@ -17,6 +17,7 @@
  */
 
 #include "src/platforms/android/server/hwc_loggers.h"
+#include <array>
 #include <memory>
 #include <iostream>
 #include <gmock/gmock.h>

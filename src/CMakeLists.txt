@@ -1,8 +1,6 @@
 # We need MIR_CLIENT_PLATFORM_PATH in both libmirclient and the platform
 # implementations
-set(MIR_CLIENT_PLATFORM_PATH
-  ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/mir/client-platform
-)
+set(MIR_CLIENT_PLATFORM_PATH ${MIR_LIB_PATH}/client-platform)
 
 # Add the core and platform implementations before exposing any private APIs
 add_subdirectory(gl/)

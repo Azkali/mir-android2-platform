@@ -1,4 +1,4 @@
-pkg_check_modules(MIRTEST REQUIRED mirtest)
+pkg_search_module(MIRTEST REQUIRED mir1test mirtest)
 pkg_check_modules(UMOCKDEV REQUIRED umockdev-1.0>=0.6)
 if (NOT UMOCKDEV_FOUND)
   message(FATAL_ERROR "Umockdev not found, cannot build without disabling tests (via MIR_ENABLE_TESTS).")

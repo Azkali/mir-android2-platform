@@ -153,14 +153,20 @@ find_package(LTTngUST REQUIRED)
 
 pkg_check_modules(UDEV REQUIRED libudev)
 pkg_check_modules(GLIB REQUIRED glib-2.0)
-pkg_check_modules(MIRCLIENT REQUIRED mirclient)
-pkg_check_modules(MIRCORE REQUIRED mircore)
-pkg_check_modules(MIRPLATFORM REQUIRED mirplatform)
-pkg_check_modules(MIRGLRENDERER REQUIRED mir-renderer-gl-dev)
-pkg_check_modules(MIRRENDERER REQUIRED mirrenderer)
-pkg_check_modules(MIRSERVER REQUIRED mirserver)
+pkg_search_module(MIRCLIENT REQUIRED mir1client mirclient)
+pkg_search_module(MIRCORE REQUIRED mir1core mircore)
+pkg_search_module(MIRPLATFORM REQUIRED mir1platform mirplatform)
+pkg_search_module(MIRGLRENDERER REQUIRED mir1-renderer-gl-dev mir-renderer-gl-dev)
+pkg_search_module(MIRRENDERER REQUIRED mir1renderer mirrenderer)
+pkg_search_module(MIRSERVER REQUIRED mir1server mirserver)
 pkg_check_modules(WAYLAND_SERVER REQUIRED wayland-server)
 pkg_check_modules(DEVICEINFO REQUIRED deviceinfo)
+
+if (MIRCORE_MODULE_NAME STREQUAL "mir1core")
+  set(MIR_LIB_PATH ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/mir1)
+else ()
+  set(MIR_LIB_PATH ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/mir)
+endif ()
 
 include_directories(
     ${PROJECT_SOURCE_DIR}
@@ -200,7 +206,7 @@ else()
   message(FATAL_ERROR "Invalid MIR_SERVER_LIBGL value ${MIR_SERVER_LIBGL}")
 endif()
 
-set(MIR_TRACEPOINT_LIB_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR}/mir/tools)
+set(MIR_TRACEPOINT_LIB_INSTALL_DIR ${MIR_LIB_PATH}/tools)
 
 set(MIR_GENERATED_INCLUDE_DIRECTORIES)
 add_subdirectory(src/)

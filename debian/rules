@@ -1,14 +1,11 @@
 #!/usr/bin/make -f
 
-DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
-DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
-DEB_HOST_ARCH_ENDIAN ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_ENDIAN)
-EXACT_PACKAGE_VERSION = $(shell dpkg-parsechangelog | grep Version | cut -d' ' -f 2)
+include /usr/share/dpkg/architecture.mk
 
 export DPKG_GENSYMBOLS_CHECK_LEVEL = 4
 
 %:
-	dh $@ --parallel --fail-missing --with python3
+	dh $@
 
 override_dh_auto_test:
 ifeq ($(DEB_HOST_ARCH_ENDIAN),little)
@@ -37,10 +34,3 @@ override_dh_auto_configure:
 # Only build the docs when we need them
 override_dh_auto_build-indep:
 	dh_auto_build -- doc
-
-override_dh_install:
-# Nothing outside Mir should link to libmirprotobuf directly.
-# Delete the symlink so that --fail-missing doesn't think we've missed it
-# accidentally.
-	dh_install --remaining-packages --fail-missing -Xjquery.js
-

@@ -87,14 +87,14 @@ MirPixelFormat mga::Buffer::pixel_format() const
 void mga::Buffer::gl_bind_to_texture()
 {
     std::unique_lock<std::mutex> lk(content_lock);
-    bind(lk);
+    do_bind(lk);
     secure_for_render(lk);
 }
 
 void mga::Buffer::upload_to_texture()
 {
     std::unique_lock<std::mutex> lk(content_lock);
-    bind(lk);
+    do_bind(lk);
 }
 
 void mga::Buffer::bind_for_write()
@@ -102,7 +102,7 @@ void mga::Buffer::bind_for_write()
     upload_to_texture();
 }
 
-void mga::Buffer::bind(std::unique_lock<std::mutex> const&)
+void mga::Buffer::do_bind(std::unique_lock<std::mutex> const&)
 {
     native_buffer->ensure_available_for(mga::BufferAccess::read);
 

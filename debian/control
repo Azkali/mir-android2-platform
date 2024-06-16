@@ -61,7 +61,7 @@ Description: Display Server for Ubuntu - android platform diagnostics utility
  .
  Contains unit tests
 
-Package: mir1-platform-graphics-android2-15
+Package: mir1-platform-graphics-android2-16
 Section: libs
 Architecture: i386 amd64 armhf arm64
 Multi-Arch: same
@@ -95,7 +95,7 @@ Architecture: i386 amd64 armhf arm64
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends},
-         mir1-platform-graphics-android2-15,
+         mir1-platform-graphics-android2-16,
          mir1-client-platform-android2-5,
          mir1-platform-input-evdev7,
 Description: Display server for Ubuntu - android driver metapackage

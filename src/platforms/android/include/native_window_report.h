@@ -21,6 +21,7 @@
 #include <system/window.h>
 #include <vector>
 #include <memory>
+#include <string>
 
 namespace mir
 {

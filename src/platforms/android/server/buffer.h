@@ -120,7 +120,7 @@ protected:
     void tex_bind() override;
 
 private:
-    void bind(std::unique_lock<std::mutex> const&);
+    void do_bind(std::unique_lock<std::mutex> const&);
     void secure_for_render(std::unique_lock<std::mutex> const&);
     std::shared_ptr<HybrisGralloc> hybris_gralloc;
 

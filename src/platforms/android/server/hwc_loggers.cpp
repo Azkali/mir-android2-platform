@@ -17,6 +17,7 @@
  */
 
 #include "hwc_loggers.h"
+#include <array>
 #include <iostream>
 #include <iomanip>
 

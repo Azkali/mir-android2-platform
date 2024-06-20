@@ -19,6 +19,8 @@
 #include "cmdstream_sync_factory.h"
 #include "egl_sync_fence.h"
 
+#include <stdexcept>
+
 namespace mg = mir::graphics;
 namespace mga = mir::graphics::android;
 

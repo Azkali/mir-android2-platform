@@ -1,11 +1,10 @@
 Source: mir-android2-platform
 Section: x11
 Priority: optional
-Maintainer: Andreas Pokorny <andreas.pokorny@gmail.com>
-XSBC-Original-Maintainer: Andreas Pokorny <andreas.pokorny@gmail.com>
+Maintainer: UBports Developers <developers@ubports.com>
 Build-Depends: cmake,
                cmake-extras,
-               debhelper (>= 9),
+               debhelper-compat (= 13),
                doxygen,
                xsltproc,
                graphviz,
@@ -25,16 +24,15 @@ Build-Depends: cmake,
                valgrind [amd64 i386 armhf arm64],
                abi-compliance-checker,
                python3:any,
-               dh-python,
-               libmircommon-dev,
-               libmirplatform-dev,
-               libmircore-dev,
-               libmirrenderer-dev,
-               libmirserver-dev,
-               libmirclient-dev,
-               libmiral-dev,
-               mir-renderer-gl-dev,
-               mirtest-dev,
+               libmir1common-dev,
+               libmir1platform-dev,
+               libmir1core-dev,
+               libmir1renderer-dev,
+               libmir1server-dev,
+               libmir1client-dev,
+               libmir1al-dev,
+               mir1-renderer-gl-dev,
+               mir1test-dev,
                libcapnp-dev,
                liblttng-ust-dev,
                libudev-dev,
@@ -44,12 +42,11 @@ Build-Depends: cmake,
                libwayland-dev,
                libdeviceinfo-dev
 Standards-Version: 3.9.4
-Homepage: https://launchpad.net/mir-android-platform
-# If you aren't a member of ~mir-team but need to upload packaging changes,
-# just go ahead. ~mir-team will notice and sync up the code again.
-Vcs-Git: https://code.launchpad.net/mir-android-platform
+Homepage: https://gitlab.com/ubports/development/core/hybris-support/mir-android2-platform
+Vcs-Git: https://gitlab.com/ubports/development/core/hybris-support/mir-android2-platform.git
+Vcs-Browser: https://gitlab.com/ubports/development/core/hybris-support/mir-android2-platform
 
-Package: mir-android2-tests
+Package: mir1-android2-tests
 Architecture: i386 amd64 armhf arm64
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends},
@@ -61,7 +58,7 @@ Description: Display Server for Ubuntu - android platform diagnostics utility
  .
  Contains unit tests
 
-Package: mir-platform-graphics-android2-15
+Package: mir1-platform-graphics-android2-16
 Section: libs
 Architecture: i386 amd64 armhf arm64
 Multi-Arch: same
@@ -75,7 +72,7 @@ Description: Display server for Ubuntu - platform library for Android
  Contains the shared libraries required for the Mir server to interact with
  the hardware platform using the Android drivers.
 
-Package: mir-client-platform-android2-5
+Package: mir1-client-platform-android2-5
 Section: libs
 Architecture: i386 amd64 armhf arm64
 Multi-Arch: same
@@ -89,15 +86,15 @@ Description: Display server for Ubuntu - client platform library for Android
  Contains the shared libraries required for the Mir clients to interact with
  the underlying hardware platform using the Android drivers.
 
-Package: mir-graphics-drivers-android2
+Package: mir1-graphics-drivers-android2
 Section: libs
 Architecture: i386 amd64 armhf arm64
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends},
-         mir-platform-graphics-android2-15,
-         mir-client-platform-android2-5,
-         mir-platform-input-evdev7,
+         mir1-platform-graphics-android2-16,
+         mir1-client-platform-android2-5,
+         mir1-platform-input-evdev7,
 Description: Display server for Ubuntu - android driver metapackage
  Mir is a display server running on linux systems, with a focus on efficiency,
  robust operation and a well-defined driver model.

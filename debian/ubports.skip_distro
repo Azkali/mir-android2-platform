@@ -1,0 +1,3 @@
+# Our devel-debian doesn't have Mir 1 packaged, and mir-android-platform has not
+# been ported to Mir 2 yet.
+devel-debian

@@ -371,7 +371,7 @@ bool mga::Display::apply_if_configuration_preserves_display_buffers(
         return true;
     }
 
-	mir::log_info("invalidate display buffers");
+    mir::log_info("invalidate display buffers");
     return false;
 }
 

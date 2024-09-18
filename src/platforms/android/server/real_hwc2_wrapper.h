@@ -50,7 +50,13 @@ struct free_delete
     void operator()(void* x) { free(x); }
 };
 
-typedef std::unique_ptr<hwc2_compat_display_t, free_delete> hwc2_compat_display_ptr;
+struct hwc2_display_delete
+{
+    hwc2_compat_device_t* hwc2_device;
+    void operator()(hwc2_compat_display_t* display) {  hwc2_compat_device_destroy_display(hwc2_device, display); }
+};
+
+typedef std::unique_ptr<hwc2_compat_display_t, hwc2_display_delete> hwc2_compat_display_ptr;
 typedef std::unique_ptr<HWC2DisplayConfig, free_delete> HWC2DisplayConfig_ptr;
 
 class RealHwc2Wrapper : public HwcWrapper

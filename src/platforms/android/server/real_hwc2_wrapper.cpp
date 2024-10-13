@@ -76,9 +76,6 @@ static std::mutex callback_lock;
 
 static void refresh_hook(HWC2EventListener* listener, int32_t sequenceId, hwc2_display_t display)
 {
-    if (mga::RealHwc2Wrapper::composerSequenceId != sequenceId)
-        return;
-
     mga::Hwc2Callbacks const* callbacks{nullptr};
     if ((callbacks = reinterpret_cast<mga::Hwc2Callbacks const*>(listener)) && callbacks->self)
     {
@@ -90,9 +87,6 @@ static void refresh_hook(HWC2EventListener* listener, int32_t sequenceId, hwc2_d
 static void vsync_hook(HWC2EventListener* listener, int32_t sequenceId, hwc2_display_t display,
     int64_t timestamp)
 {
-    if (mga::RealHwc2Wrapper::composerSequenceId != sequenceId)
-        return;
-
     mga::Hwc2Callbacks const* callbacks{nullptr};
     if ((callbacks = reinterpret_cast<mga::Hwc2Callbacks const*>(listener)) && callbacks->self)
     {
@@ -108,9 +102,6 @@ static void vsync_hook(HWC2EventListener* listener, int32_t sequenceId, hwc2_dis
 static void hotplug_hook(HWC2EventListener* listener, int32_t sequenceId,
     hwc2_display_t display, bool connected, bool primaryDisplay)
 {
-    if (mga::RealHwc2Wrapper::composerSequenceId != sequenceId)
-        return;
-
     mga::Hwc2Callbacks const* callbacks{nullptr};
     std::unique_lock<std::mutex> lk(callback_lock);
 
@@ -178,7 +169,7 @@ mga::RealHwc2Wrapper::RealHwc2Wrapper(
 
     lk.unlock();
     hwc2_compat_device_register_callback(hwc2_device, reinterpret_cast<HWC2EventListener*>(&hwc_callbacks),
-        ++mga::RealHwc2Wrapper::composerSequenceId);
+        mga::RealHwc2Wrapper::composerSequenceId++);
     lk.lock();
 }
 
@@ -405,9 +396,8 @@ void mga::RealHwc2Wrapper::hotplug(hwc2_display_t disp, bool connected, bool pri
 
     int display_id = primaryDisplay ? HWC_DISPLAY_PRIMARY : HWC_DISPLAY_EXTERNAL;
 
-    if (auto new_display = hwc2_compat_device_get_display_by_id(hwc2_device, disp)) {
-
-        if (connected) {
+    if (connected) {
+        if (auto new_display = hwc2_compat_device_get_display_by_id(hwc2_device, disp)) {
             mir::log_warning("hotplug: Adding display %" PRIu64 " with id %i", disp, display_id);
 
             // Check if this is the same display
@@ -416,35 +406,46 @@ void mga::RealHwc2Wrapper::hotplug(hwc2_display_t disp, bool connected, bool pri
                 mir::log_warning("hotplug: We have an old display with this id, replacing this!");
             }
 
-            hwc2_displays[display_id] = {hwc2_compat_display_ptr{new_display}};
+            hwc2_display_delete deleter;
+            deleter.hwc2_device = hwc2_device;
+
+            hwc2_displays[display_id] = hwc2_compat_display_ptr(new_display, deleter);
             last_present_fence[display_id] = -1;
             active_displays[display_id] = true;
         } else {
-            auto &oldDisplay = hwc2_displays[display_id];
-            if (!oldDisplay) {
-                mir::log_warning("hotplug: Could not find display to remove, ignoring");
-            } else {
-                mir::log_info("hotplug: Removing display %i", display_id);
-                active_displays[display_id] = false;
-            }
-        }
-
-        is_plugged[display_id].store(connected);
-
-        auto name = display_name(disp);
-        std::unique_lock<std::mutex> lk(callback_map_lock);
-        for(auto const& callbacks : callback_map)
-        {
-            try
-            {
-                callbacks.second.hotplug(name, connected);
-            }
-            catch (...)
-            {
-            }
+            mir::log_warning("hotplug: Something went wrong when trying to get display id!");
         }
     } else {
-        mir::log_warning("hotplug: Something went wrong when trying to get display id!");
+        auto &oldDisplay = hwc2_displays[display_id];
+        if (!oldDisplay) {
+            mir::log_warning("hotplug: Could not find display to remove, ignoring");
+        } else {
+            mir::log_info("hotplug: Removing display %i", display_id);
+            auto it = display_contents.find(display_id);
+            if (it != display_contents.end()) {
+                for (auto content : (*it).second) {
+                    hwc2_compat_display_destroy_layer(hwc2_displays[display_id].get(), content);
+                }
+                display_contents.erase(it);
+            }
+            hwc2_displays[display_id] = nullptr;
+            active_displays[display_id] = false;
+        }
+    }
+
+    is_plugged[display_id].store(connected);
+
+    auto name = display_name(disp);
+    std::unique_lock<std::mutex> lk(callback_map_lock);
+    for(auto const& callbacks : callback_map)
+    {
+        try
+        {
+            callbacks.second.hotplug(name, connected);
+        }
+        catch (...)
+        {
+        }
     }
 }
 
@@ -606,6 +607,6 @@ bool mga::RealHwc2Wrapper::display_connected(DisplayName display_name) const
 {
     size_t num_configs = 0;
     //return hwc_device->getDisplayConfigs(hwc_device.get(), as_hwc_display(display_name), nullptr, &num_configs) == 0;
-    return true;
+    return is_plugged[as_hwc_display(display_name)].load();
 }
 

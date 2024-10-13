@@ -421,12 +421,15 @@ void mga::RealHwc2Wrapper::hotplug(hwc2_display_t disp, bool connected, bool pri
             mir::log_warning("hotplug: Could not find display to remove, ignoring");
         } else {
             mir::log_info("hotplug: Removing display %i", display_id);
-            hwc2_displays[display_id] = nullptr;
-            active_displays[display_id] = false;
             auto it = display_contents.find(display_id);
             if (it != display_contents.end()) {
+                for (auto content : (*it).second) {
+                    hwc2_compat_display_destroy_layer(hwc2_displays[display_id].get(), content);
+                }
                 display_contents.erase(it);
             }
+            hwc2_displays[display_id] = nullptr;
+            active_displays[display_id] = false;
         }
     }
 

@@ -600,6 +600,6 @@ bool mga::RealHwc2Wrapper::display_connected(DisplayName display_name) const
 {
     size_t num_configs = 0;
     //return hwc_device->getDisplayConfigs(hwc_device.get(), as_hwc_display(display_name), nullptr, &num_configs) == 0;
-    return true;
+    return is_plugged[as_hwc_display(display_name)].load();
 }
 

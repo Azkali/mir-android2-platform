@@ -15,4 +15,5 @@ target_include_directories(mirsharedandroid-static PUBLIC
   PUBLIC ${server_common_include_dirs}
          include/
          SYSTEM PRIVATE ${ANDROID_HEADERS_INCLUDE_DIRS} # for linux/sync.h
+         ${HYBRIS_SYNC_INCLUDE_DIRS}
   )

@@ -137,6 +137,8 @@ include_directories (SYSTEM
 find_package(AndroidProperties REQUIRED)
 find_package(LibHardware REQUIRED)
 pkg_check_modules(GRALLOC REQUIRED libgralloc)
+pkg_check_modules(HWC2 REQUIRED libhwc2)
+pkg_check_modules(HYBRIS_SYNC REQUIRED libsync)
 pkg_check_modules(HYBRIS_EGL_PLATFORM REQUIRED hybris-egl-platform)
 pkg_search_module(ANDROID_HEADERS REQUIRED android-headers-28)
 

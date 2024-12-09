@@ -20,7 +20,7 @@
 
 #include <unistd.h>
 #include <sys/ioctl.h>
-#include <linux/sync.h>  // This will come from /usr/include/android{,-19}/
+#include <sync/sync.h>
 
 namespace mga = mir::graphics::android;
 
@@ -35,21 +35,21 @@ void mga::SyncFence::wait()
     if (fence_fd > 0)
     {
         int timeout = infinite_timeout;
-        ops->ioctl(fence_fd, SYNC_IOC_WAIT, &timeout);
+        ops->sync_wait(fence_fd, timeout);
         fence_fd = mir::Fd(Fd::invalid);
     }
 }
 
 bool mga::SyncFence::wait_for(std::chrono::milliseconds ms)
 {
-    int timed_out = 0;
+    int ret = 0;
     if (fence_fd > 0)
     {
         int timeout = ms.count();
-        timed_out = ops->ioctl(fence_fd, SYNC_IOC_WAIT, &timeout);
+        ret = ops->sync_wait(fence_fd, timeout);
         fence_fd = mir::Fd(Fd::invalid);
     }
-    return timed_out >= 0;
+    return ret == 0;
 }
 
 void mga::SyncFence::reset_fence()
@@ -72,10 +72,8 @@ void mga::SyncFence::merge_with(NativeFence& merge_fd)
     else
     {
         //both fences were valid, must merge
-        struct sync_merge_data data { merge_fd, "mirfence", infinite_timeout };
-        ops->ioctl(fence_fd, static_cast<int>(SYNC_IOC_MERGE), &data);
+        fence_fd = mir::Fd(ops->sync_merge("mirfence", fence_fd, merge_fd));
         ops->close(merge_fd);
-        fence_fd = mir::Fd(data.fence);
     }
 
     merge_fd = -1;
@@ -91,9 +89,14 @@ mga::NativeFence mga::SyncFence::native_handle() const
     return fence_fd;
 }
 
-int mga::RealSyncFileOps::ioctl(int fd, int req, void* dat)
+int mga::RealSyncFileOps::sync_wait(int fd, int timeout)
 {
-    return ::ioctl(fd, req, dat);
+    return ::sync_wait(fd, timeout);
+}
+
+int mga::RealSyncFileOps::sync_merge(const char *name, int fd1, int fd2)
+{
+    return ::sync_merge(name, fd1, fd2);
 }
 
 int mga::RealSyncFileOps::dup(int fd)

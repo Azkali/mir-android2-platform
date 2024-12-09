@@ -260,6 +260,7 @@ void mga::RealHwc2Wrapper::set(
     std::list<DisplayContents> const& contents) const
 {
    // report->report_set_list(hwc1_displays);
+    std::unordered_map<int, std::shared_ptr<mg::Buffer>> next_client_target_buffers;
 
     for (auto content : contents) {
         auto display_id = as_hwc_display(content.name);
@@ -290,13 +291,6 @@ void mga::RealHwc2Wrapper::set(
             }
 
             auto acquire_fence_fd = fblayer.acquireFenceFd;
-
-            if (sync_before_set && acquire_fence_fd >= 0) {
-                sync_wait(acquire_fence_fd, -1);
-                close(acquire_fence_fd);
-                acquire_fence_fd = -1;
-            }
-
             auto native_buffer = mga::to_native_buffer_checked(buffer->native_buffer_handle());
 
             hwc2_compat_display_set_client_target(hwc2_display, /* slot */0, native_buffer->anwb(),
@@ -316,17 +310,41 @@ void mga::RealHwc2Wrapper::set(
                 // some devices (found on lavender) but next try will likely succeed.
                 mir::log_warning("set: error during hwc display present. rc = %s", getErrorName(rc));
             }
-            fblayer.releaseFenceFd = presentFence;
+            next_client_target_buffers[display_id] = buffer;
 
+            // HWC2 present fences signal when the frame n is displayed on screen
+            // and the buffer for the previous frame n-1 is no longer needed.
+
+            // See https://android.googlesource.com/platform/hardware/interfaces/+/refs/heads/
+            // android11-gsi/graphics/composer/2.1/utils/hwc2on1adapter/include/hwc2on1adapter/HWC2On1Adapter.h#137
+            // and https://source.android.com/docs/core/graphics/sync#hardware_composer_integration
+
+            // Wait for the previously submitted frame to be displayed to ensure we're not rendering too fast
+            // FIXME: is needed at all?
             auto _last_present_fence = last_present_fence[display_id];
             if (_last_present_fence != -1) {
                 sync_wait(_last_present_fence, -1);
                 close(_last_present_fence);
+                last_present_fence[display_id] = -1;
             }
 
-            last_present_fence[display_id] = presentFence != -1 ? dup(presentFence) : -1;
+            if (presentFence == -1) {
+                continue;
+            }
+            last_present_fence[display_id] = dup(presentFence);
+
+            // Assign the present fence obtained from the HWC2 present call to guard access to the previous frame buffer
+            if (onscreen_client_target_buffers.find(display_id) != onscreen_client_target_buffers.end()) {
+                auto& previous_buffer = onscreen_client_target_buffers[display_id];
+                auto previous_native_buffer = mga::to_native_buffer_checked(previous_buffer->native_buffer_handle());
+                previous_native_buffer->update_usage(presentFence, mga::BufferAccess::read);
+            } else {
+                close(presentFence);
+            }
         }
     }
+
+    onscreen_client_target_buffers = std::move(next_client_target_buffers);
 
    // report->report_set_done(hwc1_displays);
 }

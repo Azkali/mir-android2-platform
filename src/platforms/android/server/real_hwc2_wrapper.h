@@ -110,6 +110,7 @@ private:
     std::unordered_map<int, std::vector<hwc2_compat_layer_t*>> display_contents;
     std::unordered_map<int, int> last_present_fence;
     std::unordered_map<int, bool> active_displays;
+    std::unordered_map<int, std::shared_ptr<graphics::Buffer>> onscreen_client_target_buffers;
     bool avoid_backpressure;
     bool flip_width_and_height;
 };

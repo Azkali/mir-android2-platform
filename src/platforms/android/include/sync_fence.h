@@ -33,7 +33,8 @@ class SyncFileOps
 {
 public:
     virtual ~SyncFileOps() = default;
-    virtual int ioctl(int, int, void*) = 0;
+    virtual int sync_wait(int fd, int timeout) = 0;
+    virtual int sync_merge(const char *name, int fd1, int fd2) = 0;
     virtual int dup(int) = 0;
     virtual int close(int) = 0;
 };
@@ -41,7 +42,8 @@ public:
 class RealSyncFileOps : public SyncFileOps
 {
 public:
-    int ioctl(int fd, int req, void* dat);
+    int sync_wait(int fd, int timeout);
+    int sync_merge(const char *name, int fd1, int fd2);
     int dup(int fd);
     int close(int fd);
 };

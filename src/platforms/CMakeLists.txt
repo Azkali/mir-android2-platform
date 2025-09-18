@@ -15,12 +15,6 @@ set(MIR_SERVER_PLATFORM_PATH
   PARENT_SCOPE
 )
 
-set(MIR_CLIENT_PLATFORM_ABI 5)
-set(MIR_CLIENT_PLATFORM_STANZA_VERSION 5)
-set(MIR_CLIENT_PLATFORM_ABI ${MIR_CLIENT_PLATFORM_ABI} PARENT_SCOPE)
-set(MIR_CLIENT_PLATFORM_VERSION "MIR_CLIENT_PLATFORM_${MIR_CLIENT_PLATFORM_STANZA_VERSION}")
-set(MIR_CLIENT_PLATFORM_VERSION ${MIR_CLIENT_PLATFORM_VERSION} PARENT_SCOPE)
-
 set(server_common_include_dirs
   ${PROJECT_SOURCE_DIR}/include/platform
   ${PROJECT_SOURCE_DIR}/include/renderers/gl
@@ -35,17 +29,6 @@ set(server_common_include_dirs
 )
 
 set(server_symbol_map ${CMAKE_CURRENT_SOURCE_DIR}/common/server/symbols.map)
-
-set(client_common_include_dirs
-  ${PROJECT_SOURCE_DIR}/include/client
-  ${CMAKE_CURRENT_SOURCE_DIR}/common/client
-)
-
-# TODO client platform implementations shouldn't depend on private APIs
-set(client_common_include_dirs
-  ${client_common_include_dirs}
-  ${PROJECT_SOURCE_DIR}/src/include/client
-)
 
 add_subdirectory(common/)
 add_subdirectory(android/)

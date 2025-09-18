@@ -6,5 +6,4 @@ CMAKE_DEPENDENT_OPTION(
   OFF)
 
 
-add_subdirectory(client)
 add_subdirectory(platforms)

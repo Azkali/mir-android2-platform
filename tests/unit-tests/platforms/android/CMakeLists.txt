@@ -21,7 +21,6 @@ if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
 endif()
 
 add_subdirectory(server)
-add_subdirectory(client)
 
 mir_add_wrapped_executable(mir_unit_tests_android2
   ${ANDROID_UNIT_TEST_SOURCES}
@@ -43,7 +42,6 @@ endif()
 target_link_libraries(
   mir_unit_tests_android2
   mirsharedandroid-static
-  client_platform_common
   server_platform_common
   mir-test-doubles-platform-static
 

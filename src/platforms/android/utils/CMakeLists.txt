@@ -37,7 +37,6 @@ target_include_directories(mir_demo_standalone_render_overlays SYSTEM PRIVATE
   ${ANDROID_INCLUDE_DIRS})
 
 target_link_libraries(mir_demo_standalone_render_overlays
-  ${MIRCLIENT_LDFLAGS}
   ${MIRCOMMON_LDFLAGS}
   ${MIRPLATFORM_LDFLAGS}
 )

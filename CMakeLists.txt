@@ -158,7 +158,6 @@ find_package(LTTngUST REQUIRED)
 
 pkg_check_modules(UDEV REQUIRED libudev)
 pkg_check_modules(GLIB REQUIRED glib-2.0)
-pkg_search_module(MIRCLIENT REQUIRED mir1client mirclient)
 pkg_search_module(MIRCORE REQUIRED mir1core mircore)
 pkg_search_module(MIRPLATFORM REQUIRED mir1platform mirplatform)
 pkg_search_module(MIRGLRENDERER REQUIRED mir1-renderer-gl-dev mir-renderer-gl-dev)
@@ -179,7 +178,6 @@ include_directories(
     ${MIRPLATFORM_INCLUDE_DIRS}
     ${MIRRENDERER_INCLUDE_DIRS}
     ${MIRGLRENDERER_INCLUDE_DIRS}
-    ${MIRCLIENT_INCLUDE_DIRS}
     ${MIRSERVER_INCLUDE_DIRS}
 )
 
@@ -225,9 +223,6 @@ if (MIR_ENABLE_TESTS)
   add_subdirectory(tests/)
 
   # There's no nice way to format this. Thanks CMake.
-  mir_add_test(NAME LGPL-required
-    COMMAND /bin/sh -c "! grep -rl 'GNU General' ${PROJECT_SOURCE_DIR}/src/client ${PROJECT_SOURCE_DIR}/include/client ${PROJECT_SOURCE_DIR}/src/common ${PROJECT_SOURCE_DIR}/include/common ${PROJECT_SOURCE_DIR}/src/include/common ${PROJECT_SOURCE_DIR}/src/platform ${PROJECT_SOURCE_DIR}/include/platform ${PROJECT_SOURCE_DIR}/src/include/platform ${PROJECT_SOURCE_DIR}/src/capnproto"
-  )
   mir_add_test(NAME GPL-required
     COMMAND /bin/sh -c "! grep -rl 'GNU Lesser' ${PROJECT_SOURCE_DIR}/src/server ${PROJECT_SOURCE_DIR}/include/server ${PROJECT_SOURCE_DIR}/src/include/server ${PROJECT_SOURCE_DIR}/tests ${PROJECT_SOURCE_DIR}/examples"
   )

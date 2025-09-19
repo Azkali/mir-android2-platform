@@ -20,7 +20,6 @@
 #include "hwc_wrapper.h"
 #include "mir/raii.h"
 #include "android_format_conversion-inl.h"
-#include "mir/geometry/length.h"
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <boost/throw_exception.hpp>
@@ -132,8 +131,9 @@ int dpi_to_mm(uint32_t dpi, int pixel_num)
 {
     if (dpi == 0) return 0;
     float dpi_inches = dpi / 1000.0f; //android multiplies by 1000
-    geom::Length length(pixel_num / dpi_inches, geom::Length::Units::inches);
-    return length.as(geom::Length::Units::millimetres);
+    // Convert inches to millimeters (1 inch = 25.4 mm)
+    float inches = pixel_num / dpi_inches;
+    return static_cast<int>(inches * 25.4);
 }
 
 bool is_tablet_device()
@@ -169,29 +169,29 @@ mg::DisplayConfigurationOutput populate_config(
         form_factor = mir_form_factor_tablet;
     }
 
-    return {
-        as_output_id(name),
-        mg::DisplayConfigurationCardId{0},
-        type,
-        {display_format},
-        external_modes,
-        preferred_mode_index,
-        mm_size,
-        connected,
-        connected,
-        origin,
-        preferred_format_index,
-        display_format,
-        external_mode,
-        mir_orientation_normal,
-        1.0f,
-        form_factor,
-        mir_subpixel_arrangement_unknown,
-        {},
-        mir_output_gamma_unsupported,
-        {},
-        {}
-    };
+    mg::DisplayConfigurationOutput output;
+    output.id = as_output_id(name);
+    output.card_id = mg::DisplayConfigurationCardId{0};
+    output.type = type;
+    output.pixel_formats = {display_format};
+    output.modes = external_modes;
+    output.preferred_mode_index = preferred_mode_index;
+    output.physical_size_mm = mm_size;
+    output.connected = connected;
+    output.used = connected;
+    output.top_left = origin;
+    output.current_mode_index = preferred_format_index;
+    output.current_format = display_format;
+    output.power_mode = external_mode;
+    output.orientation = mir_orientation_normal;
+    output.scale = 1.0f;
+    output.form_factor = form_factor;
+    output.subpixel_arrangement = mir_subpixel_arrangement_unknown;
+    output.gamma = {};
+    output.gamma_supported = mir_output_gamma_unsupported;
+    output.custom_logical_size = mir::optional_value<geom::Size>{};
+    output.custom_attribute = {};
+    return output;
 }
 
 mg::DisplayConfigurationOutput display_config_for(

@@ -19,10 +19,11 @@
 #ifndef MIR_GRAPHICS_ANDROID_DISPLAY_BUFFER_H_
 #define MIR_GRAPHICS_ANDROID_DISPLAY_BUFFER_H_
 
-#include "configurable_display_buffer.h"
+#include "configurable_display_sink.h"
+#include "mir/graphics/display.h"
 #include "mir/graphics/egl_resources.h"
 #include "mir/gl/program_factory.h"
-#include "mir/renderer/gl/render_target.h"
+#include "mir/renderer/gl/gl_surface.h"
 #include "display_configuration.h"
 #include "gl_context.h"
 #include "hwc_fallback_gl_renderer.h"
@@ -40,21 +41,22 @@ class DisplayDevice;
 class FramebufferBundle;
 class LayerList;
 
-class DisplayBuffer : public ConfigurableDisplayBuffer,
-                      public NativeDisplayBuffer,
-                      public renderer::gl::RenderTarget
+
+class DisplaySink : public ConfigurableDisplaySink,
+                    public DisplaySyncGroup,
+                      public graphics::gl::OutputSurface
 {
 public:
     //TODO: could probably just take the HalComponentFactory to reduce the
     //      number of dependencies
-    DisplayBuffer(
+    DisplaySink(
         DisplayName,
         std::unique_ptr<LayerList> layer_list,
         std::shared_ptr<FramebufferBundle> const& fb_bundle,
         std::shared_ptr<DisplayDevice> const& display_device,
         std::shared_ptr<ANativeWindow> const& native_window,
         GLContext const& shared_gl_context,
-        gl::ProgramFactory const& program_factory,
+        mir::gl::ProgramFactory const& program_factory,
         glm::mat2 const& transform,
         geometry::Rectangle area,
         OverlayOptimization overlay_option);
@@ -62,12 +64,27 @@ public:
     geometry::Rectangle view_area() const override;
     void make_current() override;
     void release_current() override;
-    void swap_buffers() override;
-    bool overlay(RenderableList const& renderlist) override;
+    void swap_buffers();
+    std::unique_ptr<mir::graphics::Framebuffer> commit() override {
+        gl_context.swap_buffers();
+        return {};
+    }
+
+    bool overlay(std::vector<DisplayElement> const& renderlist);
+    void set_next_image(std::unique_ptr<mir::graphics::Framebuffer> content) override;
+    void post() override;
+    void for_each_display_sink(std::function<void(graphics::DisplaySink&)> const& f) override;
+    std::chrono::milliseconds recommended_sleep() const override;
+
     void bind() override;
+    geometry::Size size() const override;
+    auto layout() const -> Layout override
+    {
+        return Layout::GL;
+    }
 
     glm::mat2 transformation() const override;
-    NativeDisplayBuffer* native_display_buffer() override;
+    auto maybe_create_allocator(DisplayAllocator::Tag const& type_tag) -> DisplayAllocator* override;
 
     void configure(MirPowerMode power_mode, glm::mat2 const& trans, geometry::Rectangle const&) override;
     DisplayContents contents() override;
@@ -84,6 +101,7 @@ private:
     glm::mat2 transform;
     geometry::Rectangle area;
     MirPowerMode power_mode_;
+    std::unique_ptr<mir::graphics::Framebuffer> next_framebuffer;
 };
 
 }

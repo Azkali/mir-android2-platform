@@ -20,7 +20,7 @@
 #include "mir/graphics/frame.h"
 #include "display_configuration.h"
 #include "mir/graphics/display_report.h"
-#include "mir/graphics/display_buffer.h"
+#include "mir/graphics/display_sink.h"
 #include "mir/graphics/egl_resources.h"
 #include "mir/graphics/transformation.h"
 #include "display.h"
@@ -112,7 +112,7 @@ void set_powermode_all_displays(
         power_mode_safe(mga::DisplayName::external, control, config.external(), intended_mode); 
 }
 
-std::unique_ptr<mga::ConfigurableDisplayBuffer> create_display_buffer(
+std::unique_ptr<mga::ConfigurableDisplaySink> create_display_buffer(
     std::shared_ptr<mga::DisplayDevice> const& display_device,
     mga::DisplayName name,
     mga::DisplayComponentFactory& display_buffer_builder,
@@ -127,7 +127,7 @@ std::unique_ptr<mga::ConfigurableDisplayBuffer> create_display_buffer(
     mga::DeviceQuirks quirks(mga::PropertiesOps{}, gl_context);
     auto interpreter = std::make_shared<mga::ServerRenderWindow>(fbs, config.current_format, cache, quirks); 
     auto native_window = std::make_shared<mga::MirNativeWindow>(interpreter, report);
-    return std::unique_ptr<mga::ConfigurableDisplayBuffer>(new mga::DisplayBuffer(
+    return std::unique_ptr<mga::ConfigurableDisplaySink>(new mga::DisplaySink(
         name,
         display_buffer_builder.create_layer_list(),
         fbs,
@@ -168,9 +168,12 @@ mga::Display::Display(
     display_device(display_buffer_builder->create_display_device()),
     display_change_pipe(new DisplayChangePipe),
     gl_program_factory(gl_program_factory),
-    displays(
-        display_device,
-        create_display_buffer(
+    display_sinks{},
+    overlay_option(overlay_option)
+{
+    // Initialize the primary display sink
+    display_sinks[mga::DisplayName::primary] = std::unique_ptr<mga::DisplaySink>(
+        static_cast<mga::DisplaySink*>(create_display_buffer(
             display_device,
             mga::DisplayName::primary,
             *display_buffer_builder,
@@ -178,17 +181,15 @@ mga::Display::Display(
             gl_program_factory,
             gl_context,
             native_window_report,
-            overlay_option),
-            [this] { on_hotplug(); }), //Recover from exception by forcing a configuration change
-    overlay_option(overlay_option)
-{
+            overlay_option).release()));
+
     //Some drivers (depending on kernel state) incorrectly report an error code indicating that the display is already on. Ignore the first failure.
     set_powermode_all_displays(*hwc_config, config, mir_power_mode_on);
 
     if (config.external().connected)
     {
-        displays.add(mga::DisplayName::external,
-            create_display_buffer(
+        display_sinks[mga::DisplayName::external] = std::unique_ptr<mga::DisplaySink>(
+            static_cast<mga::DisplaySink*>(create_display_buffer(
                 display_device,
                 mga::DisplayName::external,
                 *display_buffer_builder,
@@ -196,7 +197,7 @@ mga::Display::Display(
                 gl_program_factory,
                 gl_context,
                 native_window_report,
-                overlay_option));
+                overlay_option).release()));
     }
 
     display_report->report_successful_setup_of_native_resources();
@@ -235,7 +236,10 @@ void mga::Display::update_configuration(std::lock_guard<std::mutex> const&) cons
 void mga::Display::for_each_display_sync_group(std::function<void(mg::DisplaySyncGroup&)> const& f)
 {
     std::lock_guard<decltype(configuration_mutex)> lock{configuration_mutex};
-    f(displays);
+    for (auto& [name, sink] : display_sinks)
+    {
+        f(*sink);
+    }
 }
 
 std::unique_ptr<mg::DisplayConfiguration> mga::Display::configuration() const
@@ -274,8 +278,10 @@ void mga::Display::on_vsync(DisplayName name, mg::Frame::Timestamp timestamp)
      *     Android.
      */
     auto& f = last_frame[as_output_id(name).as_value()];
-    f.increment_with_timestamp(timestamp);
-    display_report->report_vsync(as_output_id(name).as_value(), f.load());
+    // Mir 2.x Frame struct is simpler - just increment msc and set ust
+    f.msc++;
+    f.ust = timestamp;
+    display_report->report_vsync(as_output_id(name).as_value(), f);
 }
 
 void mga::Display::on_refresh()
@@ -283,15 +289,6 @@ void mga::Display::on_refresh()
     // Could be used later
 }
 
-mg::Frame mga::Display::last_frame_on(unsigned output_id) const
-{
-    std::lock_guard<decltype(vsync_mutex)> lock{vsync_mutex};
-    auto last = last_frame.find(output_id);
-    if (last == last_frame.end())
-         return {};  // Not an error. It might be a valid output_id pre-vsync
-    else
-         return last->second.load();
-}
 
 void mga::Display::register_configuration_change_handler(
     EventHandlerRegister& event_handler,
@@ -306,12 +303,6 @@ void mga::Display::register_configuration_change_handler(
             }));
 }
 
-void mga::Display::register_pause_resume_handlers(
-    EventHandlerRegister& /*handlers*/,
-    DisplayPauseHandler const& /*pause_handler*/,
-    DisplayResumeHandler const& /*resume_handler*/)
-{
-}
 
 void mga::Display::pause()
 {
@@ -324,31 +315,6 @@ void mga::Display::resume()
 auto mga::Display::create_hardware_cursor() -> std::shared_ptr<Cursor>
 {
     return nullptr;
-}
-
-std::unique_ptr<mg::VirtualOutput> mga::Display::create_virtual_output(int width, int height)
-{
-    auto enable_virtual_output = [this, width, height]
-    {
-        config.set_virtual_output_to(width, height);
-        on_hotplug();
-    };
-    auto disable_virtual_output = [this]
-    {
-        config.disable_virtual_output();
-        on_hotplug();
-    };
-    return {std::make_unique<mga::VirtualOutput>(enable_virtual_output, disable_virtual_output)};
-}
-
-mg::NativeDisplay* mga::Display::native_display()
-{
-    return this;
-}
-
-std::unique_ptr<mir::renderer::gl::Context> mga::Display::create_gl_context() const
-{
-    return std::make_unique<mga::PbufferGLContext>(gl_context);
 }
 
 bool mga::Display::apply_if_configuration_preserves_display_buffers(
@@ -382,10 +348,9 @@ void mga::Display::configure_locked(
     if (!new_configuration.valid())
         BOOST_THROW_EXCEPTION(std::logic_error("Invalid or inconsistent display configuration"));
 
-    if ((config.external().connected) && !displays.display_present(mga::DisplayName::external))
-        displays.add(
-            mga::DisplayName::external,
-            create_display_buffer(
+    if ((config.external().connected) && display_sinks.find(mga::DisplayName::external) == display_sinks.end())
+        display_sinks[mga::DisplayName::external] = std::unique_ptr<mga::DisplaySink>(
+            static_cast<mga::DisplaySink*>(create_display_buffer(
                 display_device,
                 mga::DisplayName::external,
                 *display_buffer_builder,
@@ -393,9 +358,9 @@ void mga::Display::configure_locked(
                 gl_program_factory,
                 gl_context,
                 native_window_report,
-                overlay_option));
-    if ((!config.external().connected) && displays.display_present(mga::DisplayName::external))
-        displays.remove(mga::DisplayName::external);
+                overlay_option).release()));
+    if ((!config.external().connected) && display_sinks.find(mga::DisplayName::external) != display_sinks.end())
+        display_sinks.erase(mga::DisplayName::external);
 
     new_configuration.for_each_output(
         [this](mg::DisplayConfigurationOutput const& output)
@@ -413,12 +378,14 @@ void mga::Display::configure_locked(
             if (config.primary().id == output.id)
             {
                 power_mode(mga::DisplayName::primary, *hwc_config, config.primary(), output.power_mode);
-                displays.configure(mga::DisplayName::primary, output.power_mode, transform, output.extents());
+                if (auto it = display_sinks.find(mga::DisplayName::primary); it != display_sinks.end())
+                    it->second->configure(output.power_mode, transform, output.extents());
             }
             else if (config.external().id == output.id && config.external().connected)
             {
                 power_mode(mga::DisplayName::external, *hwc_config, config.external(), output.power_mode);
-                displays.configure(mga::DisplayName::external, output.power_mode, transform, output.extents());
+                if (auto it = display_sinks.find(mga::DisplayName::external); it != display_sinks.end())
+                    it->second->configure(output.power_mode, transform, output.extents());
             }
         });
     old_outputs = config.output_connections();

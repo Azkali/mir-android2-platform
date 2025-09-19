@@ -48,29 +48,30 @@ mg::DisplayConfigurationOutput make_virtual_config(const MirPixelFormat display_
     std::vector<mg::DisplayConfigurationMode> external_modes;
     external_modes.emplace_back(mg::DisplayConfigurationMode{{1920,1080}, vrefresh_hz});
 
-    return {
-        as_output_id(name),
-        mg::DisplayConfigurationCardId{0},
-        type,
-        {display_format},
-        external_modes,
-        preferred_mode_index,
-        mm_size,
-        connected,
-        connected,
-        origin,
-        preferred_format_index,
-        display_format,
-        external_mode,
-        mir_orientation_normal,
-        scale,
-        form_factor,
-        subpixel_arrangement,
-        {},
-        mir_output_gamma_unsupported,
-        {},
-        {}
-    };
+    mg::DisplayConfigurationOutput output;
+    output.id = as_output_id(name);
+    output.card_id = mg::DisplayConfigurationCardId{0};
+    output.logical_group_id = mg::DisplayConfigurationLogicalGroupId{0};
+    output.type = type;
+    output.pixel_formats = {display_format};
+    output.modes = external_modes;
+    output.preferred_mode_index = preferred_mode_index;
+    output.physical_size_mm = mm_size;
+    output.connected = connected;
+    output.used = connected;
+    output.top_left = origin;
+    output.current_mode_index = preferred_format_index;
+    output.current_format = display_format;
+    output.power_mode = external_mode;
+    output.orientation = mir_orientation_normal;
+    output.scale = scale;
+    output.form_factor = form_factor;
+    output.subpixel_arrangement = subpixel_arrangement;
+    output.gamma = {};
+    output.gamma_supported = mir_output_gamma_unsupported;
+    output.custom_logical_size = mir::optional_value<geom::Size>{};
+    output.custom_attribute = {};
+    return output;
 }
 
 
@@ -122,10 +123,6 @@ mga::DisplayConfiguration& mga::DisplayConfiguration::operator=(DisplayConfigura
     return *this;
 }
 
-void mga::DisplayConfiguration::for_each_card(std::function<void(mg::DisplayConfigurationCard const&)> f) const
-{
-    f(card);
-}
 
 void mga::DisplayConfiguration::for_each_output(std::function<void(mg::DisplayConfigurationOutput const&)> f) const
 {

@@ -23,7 +23,8 @@
 #include "device_quirks.h"
 #include "overlay_optimization.h"
 #include "mir/graphics/display.h"
-#include "mir/renderer/gl/egl_platform.h"
+#include "mir/renderer/gl/context.h"
+#include <EGL/egl.h>
 
 namespace mir
 {
@@ -37,29 +38,50 @@ class FramebufferFactory;
 class DisplayComponentFactory;
 class CommandStreamSyncFactory;
 class NativeWindowReport;
+class HybrisGrallocImpl;
 
 
-class GrallocPlatform : public graphics::RenderingPlatform,
-                        public graphics::NativeRenderingPlatform,
-                        public renderer::gl::EGLPlatform
+class RenderingPlatform : public graphics::RenderingPlatform
 {
 public:
-    GrallocPlatform(
-        std::shared_ptr<graphics::GraphicBufferAllocator> const& buffer_allocator);
+    RenderingPlatform(
+        std::shared_ptr<HybrisGrallocImpl> const& hybris_gralloc,
+        std::shared_ptr<CommandStreamSyncFactory> const& sync_factory,
+        std::shared_ptr<DeviceQuirks> const& quirks);
+    ~RenderingPlatform() override;
 
-    UniqueModulePtr<graphics::GraphicBufferAllocator> create_buffer_allocator(graphics::Display const& output) override;
-    UniqueModulePtr<PlatformIpcOperations> make_ipc_operations() const override;
-    NativeRenderingPlatform* native_rendering_platform() override;
-    MirServerEGLNativeDisplayType egl_native_display() const override;
+    mir::UniqueModulePtr<graphics::GraphicBufferAllocator> create_buffer_allocator(graphics::Display const& output) override;
+
+    auto maybe_create_provider(graphics::RenderingProvider::Tag const& type_tag)
+        -> std::shared_ptr<graphics::RenderingProvider> override;
 
 private:
-    std::shared_ptr<graphics::GraphicBufferAllocator> const buffer_allocator;
+    std::shared_ptr<HybrisGrallocImpl> const hybris_gralloc;
+    std::shared_ptr<CommandStreamSyncFactory> const sync_factory;
+    std::shared_ptr<DeviceQuirks> const quirks;
+    EGLDisplay const dpy;
+    std::shared_ptr<renderer::gl::Context> const ctx;
 };
 
-class HwcPlatform : public graphics::DisplayPlatform
+class HWCDisplayProvider : public graphics::DisplayProvider
 {
 public:
-    HwcPlatform(
+    class Tag : public graphics::DisplayProvider::Tag
+    {
+    };
+
+    explicit HWCDisplayProvider(std::shared_ptr<DisplayComponentFactory> const& display_buffer_builder);
+
+    auto on_this_sink(graphics::DisplaySink& sink) const -> bool;
+
+private:
+    std::shared_ptr<DisplayComponentFactory> const display_buffer_builder;
+};
+
+class DisplayPlatform : public graphics::DisplayPlatform
+{
+public:
+    DisplayPlatform(
         std::shared_ptr<graphics::GraphicBufferAllocator> const& buffer_allocator,
         std::shared_ptr<DisplayComponentFactory> const& display_buffer_builder,
         std::shared_ptr<DisplayReport> const& display_report,
@@ -70,8 +92,10 @@ public:
     UniqueModulePtr<Display> create_display(
         std::shared_ptr<graphics::DisplayConfigurationPolicy> const&,
         std::shared_ptr<graphics::GLConfig> const& /*gl_config*/) override;
-    NativeDisplayPlatform* native_display_platform() override;
-    std::vector<mir::ExtensionDescription> extensions() const override;
+
+protected:
+    auto maybe_create_provider(DisplayProvider::Tag const& type_tag)
+        -> std::shared_ptr<DisplayProvider> override;
 
 private:
     std::shared_ptr<graphics::GraphicBufferAllocator> const buffer_allocator;
@@ -80,27 +104,7 @@ private:
     std::shared_ptr<DeviceQuirks> const quirks;
     std::shared_ptr<NativeWindowReport> const native_window_report;
     OverlayOptimization const overlay_option;
-};
-
-class Platform : public graphics::Platform
-{
-public:
-    Platform(
-        std::shared_ptr<DisplayPlatform> const& display,
-        std::shared_ptr<GrallocPlatform> const& rendering);
-
-    UniqueModulePtr<graphics::GraphicBufferAllocator> create_buffer_allocator(graphics::Display const& output) override;
-    UniqueModulePtr<Display> create_display(
-        std::shared_ptr<graphics::DisplayConfigurationPolicy> const&,
-        std::shared_ptr<graphics::GLConfig> const& /*gl_config*/) override;
-    UniqueModulePtr<PlatformIpcOperations> make_ipc_operations() const override;
-    NativeRenderingPlatform* native_rendering_platform() override;
-    NativeDisplayPlatform* native_display_platform() override;
-    std::vector<mir::ExtensionDescription> extensions() const override;
-
-private:
-    std::shared_ptr<DisplayPlatform> const display;
-    std::shared_ptr<GrallocPlatform> const rendering;
+    std::shared_ptr<HWCDisplayProvider> const hwc_display_provider;
 };
 
 }

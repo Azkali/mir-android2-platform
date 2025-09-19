@@ -25,13 +25,10 @@
 #include "display.h"
 #include "hal_component_factory.h"
 #include "hwc_loggers.h"
-#include "ipc_operations.h"
 #include "sync_fence.h"
 #include "native_buffer.h"
 #include "native_window_report.h"
 
-#include "mir/graphics/platform_ipc_package.h"
-#include "mir/graphics/buffer_ipc_message.h"
 #include "mir/graphics/buffer_id.h"
 #include "mir/graphics/display_report.h"
 #include "mir/gl/default_program_factory.h"
@@ -39,6 +36,7 @@
 #include "mir/abnormal_exit.h"
 #include "mir/assert_module_entry_point.h"
 #include "mir/libname.h"
+#include "mir/udev/wrapper.h"
 
 #include <boost/throw_exception.hpp>
 #include <hybris/properties/properties.h>
@@ -98,127 +96,100 @@ mga::OverlayOptimization should_use_overlay_optimization(mo::Option const& optio
 }
 }  // namespace
 
-mga::Platform::Platform(
-    std::shared_ptr<DisplayPlatform> const& display,
-    std::shared_ptr<GrallocPlatform> const& rendering) :
-    display(display),
-    rendering(rendering)
+namespace
 {
+// Local stub implementations for GL context creation
+class StubGLConfig : public mg::GLConfig
+{
+public:
+    int depth_buffer_bits() const override { return 24; }
+    int stencil_buffer_bits() const override { return 8; }
+};
+
+class StubDisplayReport : public mg::DisplayReport
+{
+public:
+    void report_successful_setup_of_native_resources() override {}
+    void report_successful_egl_make_current_on_construction() override {}
+    void report_successful_egl_buffer_swap_on_construction() override {}
+    void report_successful_display_construction() override {}
+    void report_egl_configuration(EGLDisplay, EGLConfig) override {}
+    void report_vsync(unsigned int, mg::Frame const&) override {}
+    void report_successful_drm_mode_set_crtc_on_construction() override {}
+    void report_drm_master_failure(int) override {}
+    void report_vt_switch_away_failure() override {}
+    void report_vt_switch_back_failure() override {}
+};
+
+std::shared_ptr<mir::renderer::gl::Context> create_gl_context()
+{
+    // Create a basic GL context for Android platform
+    // This is similar to what eglstream-kms does
+    static StubGLConfig stub_gl_config;
+    static StubDisplayReport stub_display_report;
+
+    return std::make_shared<mga::PbufferGLContext>(stub_gl_config, stub_display_report);
+}
 }
 
-mir::UniqueModulePtr<mg::GraphicBufferAllocator> mga::Platform::create_buffer_allocator(mg::Display const& output)
+mga::RenderingPlatform::RenderingPlatform(
+    std::shared_ptr<mga::HybrisGrallocImpl> const& hybris_gralloc,
+    std::shared_ptr<mga::CommandStreamSyncFactory> const& sync_factory,
+    std::shared_ptr<mga::DeviceQuirks> const& quirks) :
+    hybris_gralloc(hybris_gralloc),
+    sync_factory(sync_factory),
+    quirks(quirks),
+    dpy(eglGetDisplay(EGL_DEFAULT_DISPLAY)),
+    ctx(create_gl_context())
 {
-    return rendering->create_buffer_allocator(output);
-}
-
-mir::UniqueModulePtr<mg::Display> mga::Platform::create_display(
-    std::shared_ptr<mg::DisplayConfigurationPolicy> const& policy,
-    std::shared_ptr<mg::GLConfig> const& gl_config)
-{
-    return display->create_display(policy, gl_config);
-}
-
-mir::UniqueModulePtr<mg::PlatformIpcOperations> mga::Platform::make_ipc_operations() const
-{
-    return rendering->make_ipc_operations();
-}
-
-mg::NativeRenderingPlatform* mga::Platform::native_rendering_platform()
-{
-    return rendering->native_rendering_platform();
-}
-
-mg::NativeDisplayPlatform* mga::Platform::native_display_platform()
-{
-    return display->native_display_platform();
-}
-
-std::vector<mir::ExtensionDescription> mga::Platform::extensions() const
-{
-    return display->extensions();
-}
-
-mga::GrallocPlatform::GrallocPlatform(
-    std::shared_ptr<mg::GraphicBufferAllocator> const& buffer_allocator) :
-    buffer_allocator(buffer_allocator)
-{
-}
-
-mir::UniqueModulePtr<mg::GraphicBufferAllocator> mga::GrallocPlatform::create_buffer_allocator(mg::Display const& output)
-{
-    struct WrappingGraphicsBufferAllocator : mg::GraphicBufferAllocator,
-                                             mg::WaylandAllocator
+    if (dpy == EGL_NO_DISPLAY)
     {
-        WrappingGraphicsBufferAllocator(
-            std::shared_ptr<mg::GraphicBufferAllocator> const& allocator)
-            : allocator(allocator),
-              wl_allocator(std::dynamic_pointer_cast<mg::WaylandAllocator>(allocator))
-        {
-        }
+        BOOST_THROW_EXCEPTION((std::runtime_error{"Failed to get EGL display"}));
+    }
 
-        std::shared_ptr<mg::Buffer> alloc_buffer(
-            mg::BufferProperties const& buffer_properties) override
-        {
-            return allocator->alloc_buffer(buffer_properties);
-        }
+    EGLint major, minor;
+    if (!eglInitialize(dpy, &major, &minor))
+    {
+        BOOST_THROW_EXCEPTION((std::runtime_error{"Failed to initialize EGL"}));
+    }
+}
 
-        std::vector<MirPixelFormat> supported_pixel_formats() override
-        {
-            return allocator->supported_pixel_formats();
-        }
+mga::RenderingPlatform::~RenderingPlatform() = default;
 
-        std::shared_ptr<mg::Buffer> alloc_buffer(
-            mir::geometry::Size size, uint32_t format, uint32_t flags) override
-        {
-            return allocator->alloc_buffer(size, format, flags);
-        }
+mir::UniqueModulePtr<mg::GraphicBufferAllocator> mga::RenderingPlatform::create_buffer_allocator(mg::Display const& output)
+{
+    auto allocator = mir::make_module_ptr<mga::GraphicBufferAllocator>(hybris_gralloc, sync_factory, quirks);
 
-        std::shared_ptr<mg::Buffer> alloc_software_buffer(mir::geometry::Size size, MirPixelFormat format) override
-        {
-            return allocator->alloc_software_buffer(size, format);
-        }
-
-        // Wayland
-        void bind_display(wl_display* display, std::shared_ptr<Executor> wayland_executor) override
-        {
-          wl_allocator->bind_display(display, std::move(wayland_executor));
-        }
-
-        std::shared_ptr<Buffer> buffer_from_resource(
-            wl_resource* buffer,
-            std::function<void()>&& on_consumed,
-            std::function<void()>&& on_release) override
-        {
-          return wl_allocator->buffer_from_resource(buffer,
-                                                std::move(on_consumed),
-                                                std::move(on_release));
-        }
-
-        std::shared_ptr<mg::GraphicBufferAllocator> const allocator;
-        std::shared_ptr<mg::WaylandAllocator> const wl_allocator;
-    };
-    auto allocator = std::dynamic_pointer_cast<mga::GraphicBufferAllocator>(buffer_allocator);
+    // Set the display context for the allocator
     allocator->set_ctx(output);
-
-    return make_module_ptr<WrappingGraphicsBufferAllocator>(buffer_allocator);
+    return allocator;
 }
 
-mir::UniqueModulePtr<mg::PlatformIpcOperations> mga::GrallocPlatform::make_ipc_operations() const
+auto mga::RenderingPlatform::maybe_create_provider(mg::RenderingProvider::Tag const& type_tag)
+    -> std::shared_ptr<mg::RenderingProvider>
 {
-    return mir::make_module_ptr<mga::IpcOperations>();
+    if (dynamic_cast<mg::GLRenderingProvider::Tag const*>(&type_tag))
+    {
+        return std::make_shared<mga::GLRenderingProvider>(ctx);
+    }
+    return nullptr;
 }
 
-mg::NativeRenderingPlatform* mga::GrallocPlatform::native_rendering_platform()
+mga::HWCDisplayProvider::HWCDisplayProvider(
+    std::shared_ptr<mga::DisplayComponentFactory> const& display_buffer_builder)
+    : display_buffer_builder(display_buffer_builder)
 {
-    return this;
 }
 
-EGLNativeDisplayType mga::GrallocPlatform::egl_native_display() const
+auto mga::HWCDisplayProvider::on_this_sink(mg::DisplaySink& /*sink*/) const -> bool
 {
-    return EGL_DEFAULT_DISPLAY;
+    // For Android platform, we assume all display sinks are HWC-compatible
+    // This is a simplified implementation - in a real implementation, you might
+    // want to check if the sink is actually using HWC hardware
+    return true;
 }
 
-mga::HwcPlatform::HwcPlatform(
+mga::DisplayPlatform::DisplayPlatform(
     std::shared_ptr<mg::GraphicBufferAllocator> const& buffer_allocator,
     std::shared_ptr<mga::DisplayComponentFactory> const& display_buffer_builder,
     std::shared_ptr<mg::DisplayReport> const& display_report,
@@ -230,11 +201,12 @@ mga::HwcPlatform::HwcPlatform(
     display_report(display_report),
     quirks(quirks),
     native_window_report(native_window_report),
-    overlay_option(overlay_option)
+    overlay_option(overlay_option),
+    hwc_display_provider(std::make_shared<mga::HWCDisplayProvider>(display_buffer_builder))
 {
 }
 
-mir::UniqueModulePtr<mg::Display> mga::HwcPlatform::create_display(
+mir::UniqueModulePtr<mg::Display> mga::DisplayPlatform::create_display(
     std::shared_ptr<mg::DisplayConfigurationPolicy> const&,
     std::shared_ptr<mg::GLConfig> const& gl_config)
 {
@@ -243,59 +215,12 @@ mir::UniqueModulePtr<mg::Display> mga::HwcPlatform::create_display(
             display_buffer_builder, program_factory, gl_config, display_report, native_window_report, overlay_option);
 }
 
-mg::NativeDisplayPlatform* mga::HwcPlatform::native_display_platform()
-{
-    return nullptr;
-}
-
-mir::UniqueModulePtr<mg::Platform> create_host_platform(std::shared_ptr<mo::Option> const& options,
-                                                        std::shared_ptr<mir::EmergencyCleanupRegistry> const&,
-                                                        std::shared_ptr<mir::ConsoleServices> const&,
-                                                        std::shared_ptr<mg::DisplayReport> const& display_report,
-                                                        std::shared_ptr<mir::logging::Logger> const& logger)
-{
-    mir::assert_entry_point_signature<mg::CreateHostPlatform>(&create_host_platform);
-    auto quirks = std::make_shared<mga::DeviceQuirks>(mga::PropertiesOps{}, *options);
-    auto hwc_report = make_hwc_report(*options);
-    auto overlay_option = should_use_overlay_optimization(*options);
-    hwc_report->report_overlay_optimization(overlay_option);
-    auto display_resource_factory = std::make_shared<mga::ResourceFactory>();
-
-    auto component_factory = std::make_shared<mga::HalComponentFactory>(
-        display_resource_factory, hwc_report, quirks);
-
-    auto allocator = component_factory->the_buffer_allocator();
-    auto display = std::make_shared<mga::HwcPlatform>(
-        allocator,
-        component_factory, display_report,
-        make_native_window_report(*options, logger),
-        overlay_option, quirks);
-
-    return mir::make_module_ptr<mga::Platform>(display,
-         std::make_shared<mga::GrallocPlatform>(allocator));
-}
-
-namespace
-{
-std::vector<mir::ExtensionDescription> extensions()
-{
-    return
-    {
-        { "mir_extension_android_buffer", { 1, 2 } },
-        { "mir_extension_android_egl", { 1 } },
-        { "mir_extension_fenced_buffers", { 1 } },
-        { "mir_extension_graphics_module", { 1 } },
-        { "mir_extension_hardware_buffer_stream", { 1 } }
-    };
-}
-}
-
 mir::UniqueModulePtr<mir::graphics::DisplayPlatform> create_display_platform(
+    mg::SupportedDevice const&,
     std::shared_ptr<mir::options::Option> const& options,
     std::shared_ptr<mir::EmergencyCleanupRegistry> const&,
     std::shared_ptr<mir::ConsoleServices> const&,
-    std::shared_ptr<mir::graphics::DisplayReport> const& report,
-    std::shared_ptr<mir::logging::Logger> const& logger)
+    std::shared_ptr<mir::graphics::DisplayReport> const& report)
 {
     mir::assert_entry_point_signature<mg::CreateDisplayPlatform>(&create_display_platform);
     auto quirks = std::make_shared<mga::DeviceQuirks>(mga::PropertiesOps{}, *options);
@@ -305,20 +230,35 @@ mir::UniqueModulePtr<mir::graphics::DisplayPlatform> create_display_platform(
     auto component_factory = std::make_shared<mga::HalComponentFactory>(
         hwc_report, quirks);
 
-    return mir::make_module_ptr<mga::HwcPlatform>(
+    // Use nullptr for logger since we don't have a concrete logger implementation
+    std::shared_ptr<mir::logging::Logger> logger = nullptr;
+
+    return mir::make_module_ptr<mga::DisplayPlatform>(
         component_factory->the_buffer_allocator(),
         component_factory, report,
         make_native_window_report(*options, logger),
         overlay_option, quirks);
 }
 
-mir::UniqueModulePtr<mir::graphics::RenderingPlatform> create_rendering_platform(
-    std::shared_ptr<mir::options::Option> const&,
-    std::shared_ptr<mir::graphics::PlatformAuthentication> const&)
+auto mga::DisplayPlatform::maybe_create_provider(mg::DisplayProvider::Tag const& type_tag)
+    -> std::shared_ptr<mg::DisplayProvider>
 {
-    mir::assert_entry_point_signature<mg::CreateRenderingPlatform>(&create_rendering_platform);
+    if (dynamic_cast<mga::HWCDisplayProvider::Tag const*>(&type_tag))
+    {
+        return hwc_display_provider;
+    }
+    return nullptr;
+}
 
-    auto quirks = std::make_shared<mga::DeviceQuirks>(mga::PropertiesOps{});
+mir::UniqueModulePtr<mir::graphics::RenderingPlatform> create_rendering_platform(
+    mg::SupportedDevice const&,
+    std::vector<std::shared_ptr<mg::DisplayPlatform>> const&,
+    mo::Option const& options,
+    mir::EmergencyCleanupRegistry&)
+{
+    mir::assert_entry_point_signature<mg::CreateRenderPlatform>(&create_rendering_platform);
+
+    auto quirks = std::make_shared<mga::DeviceQuirks>(mga::PropertiesOps{}, options);
 
     std::shared_ptr<mga::CommandStreamSyncFactory> sync_factory;
     if (quirks->working_egl_sync())
@@ -328,8 +268,7 @@ mir::UniqueModulePtr<mir::graphics::RenderingPlatform> create_rendering_platform
 
     auto hybris_gralloc = std::make_shared<mga::HybrisGrallocImpl>();
 
-    auto const buffer_allocator = std::make_shared<mga::GraphicBufferAllocator>(hybris_gralloc, sync_factory, quirks);
-    return mir::make_module_ptr<mga::GrallocPlatform>(buffer_allocator);
+    return mir::make_module_ptr<mga::RenderingPlatform>(hybris_gralloc, sync_factory, quirks);
 }
 
 void add_graphics_platform_options(
@@ -362,16 +301,44 @@ static int get_android_api_level()
     return atoi(propval);
 }
 
-mg::PlatformPriority probe_graphics_platform(std::shared_ptr<mir::ConsoleServices> const&,
-                                             mo::ProgramOption const& /*options*/)
+auto probe_display_platform(
+    std::shared_ptr<mir::ConsoleServices> const& /*console*/,
+    std::shared_ptr<mir::udev::Context> const& /*udev*/,
+    mir::options::Option const& /*options*/) -> std::vector<mir::graphics::SupportedDevice>
 {
-    mir::assert_entry_point_signature<mg::PlatformProbe>(&probe_graphics_platform);
+    mir::assert_entry_point_signature<mg::PlatformProbe>(&probe_display_platform);
 
     if (get_android_api_level() >= 26) { // Android 8 = API level 26.
-        // Trumps the old mir-android-platform's confidence.
-        return static_cast<mg::PlatformPriority>(mg::PlatformPriority::best + 16);
+        std::vector<mg::SupportedDevice> devices;
+        devices.emplace_back(
+            std::unique_ptr<mir::udev::Device>{},  // No specific udev device for Android
+            mg::probe::best + 16,  // High priority
+            std::any{}  // No platform data
+        );
+        return devices;
     } else {
-        return mg::PlatformPriority::unsupported;
+        return {};
+    }
+}
+
+auto probe_rendering_platform(
+    std::span<std::shared_ptr<mir::graphics::DisplayPlatform>> const& /*targets*/,
+    mir::ConsoleServices& /*console*/,
+    std::shared_ptr<mir::udev::Context> const& /*udev*/,
+    mir::options::Option const& /*options*/) -> std::vector<mir::graphics::SupportedDevice>
+{
+    mir::assert_entry_point_signature<mg::RenderProbe>(&probe_rendering_platform);
+
+    if (get_android_api_level() >= 26) { // Android 8 = API level 26.
+        std::vector<mg::SupportedDevice> devices;
+        devices.emplace_back(
+            std::unique_ptr<mir::udev::Device>{},  // No specific udev device for Android
+            mg::probe::best + 16,  // High priority
+            std::any{}  // No platform data
+        );
+        return devices;
+    } else {
+        return {};
     }
 }
 
@@ -390,9 +357,4 @@ mir::ModuleProperties const* describe_graphics_module()
 {
     mir::assert_entry_point_signature<mg::DescribeModule>(&describe_graphics_module);
     return &description;
-}
-
-std::vector<mir::ExtensionDescription> mga::HwcPlatform::extensions() const
-{
-    return ::extensions();
 }

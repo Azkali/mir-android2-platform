@@ -64,7 +64,6 @@ endfunction()
 #These headers are not part of the libmirplatform ABI
 set(mirplatform-exclude-headers "${CMAKE_SOURCE_DIR}/include/platform/mir/input")
 
-make_lib_descriptor(clientplatformandroid LIBRARY_HEADER ${CMAKE_SOURCE_DIR}/src/include/client/mir/client_platform_factory.h)
 make_lib_descriptor(platformgraphicsandroid LIBRARY_HEADER ${CMAKE_SOURCE_DIR}/include/platform/mir/graphics/platform.h)
 
 

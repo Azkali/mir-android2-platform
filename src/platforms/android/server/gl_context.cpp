@@ -226,6 +226,18 @@ void mga::PbufferGLContext::release_current() const
     GLContext::release_current();
 }
 
+auto mga::PbufferGLContext::make_share_context() const -> std::unique_ptr<mir::renderer::gl::Context>
+{
+    // TODO: Implement make_share_context for PbufferGLContext
+    // This is a placeholder implementation
+    return std::make_unique<mga::PbufferGLContext>(*this);
+}
+
+mga::PbufferGLContext::operator EGLContext()
+{
+    return static_cast<EGLContext>(GLContext::egl_context);
+}
+
 mga::FramebufferGLContext::FramebufferGLContext(
     GLContext const& shared_gl_context,
     std::shared_ptr<FramebufferBundle> const& fb_bundle,
@@ -258,4 +270,16 @@ void mga::FramebufferGLContext::make_current() const
 void mga::FramebufferGLContext::release_current() const
 {
     GLContext::release_current();
+}
+
+auto mga::FramebufferGLContext::make_share_context() const -> std::unique_ptr<Context>
+{
+    // TODO: Implement make_share_context
+    // This is a placeholder implementation
+    return nullptr;
+}
+
+mga::FramebufferGLContext::operator EGLContext()
+{
+    return static_cast<EGLContext>(GLContext::egl_context);
 }

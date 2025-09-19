@@ -24,6 +24,7 @@
 #include "swapping_gl_context.h"
 #include "mir_toolkit/common.h"
 #include <functional>
+#include <system/window.h>
 
 namespace mir
 {
@@ -77,6 +78,8 @@ public:
 
     void make_current() const override;
     void release_current() const override;
+    auto make_share_context() const -> std::unique_ptr<Context> override;
+    explicit operator EGLContext() override;
 private:
     EGLSurfaceStore const egl_surface;
 };
@@ -94,6 +97,8 @@ public:
     void release_current() const override;
     void swap_buffers() const override;
     std::shared_ptr<Buffer> last_rendered_buffer() const override;
+    auto make_share_context() const -> std::unique_ptr<Context> override;
+    explicit operator EGLContext() override;
 
 private:
     std::shared_ptr<FramebufferBundle> const fb_bundle;

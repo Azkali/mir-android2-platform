@@ -36,16 +36,69 @@
 namespace mg=mir::graphics;
 namespace mga=mir::graphics::android;
 namespace geom=mir::geometry;
+namespace mrs=mir::renderer::software;
+
+template <typename T>
+class mga::Buffer::Mapping : public mir::renderer::software::Mapping<T>
+{
+public:
+    Mapping(std::shared_ptr<HybrisGralloc> const& gralloc, std::shared_ptr<NativeBuffer> const& buffer, int usage):
+    buffer{buffer},
+    gralloc{gralloc}
+    {
+        int width = size().width.as_uint32_t();
+        int height = size().height.as_uint32_t();
+        int top = 0;
+        int left = 0;
+
+        if (gralloc->lock(buffer->handle(), usage, top, left, width, height, vaddr) ||
+            !vaddr)
+            BOOST_THROW_EXCEPTION(std::runtime_error("error securing buffer for client cpu use"));
+    }
+
+    ~Mapping()
+    {
+        gralloc->unlock(buffer->handle());
+    }
+
+    auto format() const -> MirPixelFormat override
+    {
+        return mga::to_mir_format(buffer->anwb()->format);
+    }
+
+    auto stride() const -> geom::Stride override
+    {
+    return geom::Stride{buffer->anwb()->stride *
+                        MIR_BYTES_PER_PIXEL(format())};
+    }
+
+    auto size() const -> geom::Size override
+    {
+        ANativeWindowBuffer *anwb = buffer->anwb();
+        return geom::Size{anwb->width, anwb->height};
+    }
+
+    auto data() -> T* override
+    {
+        return (T*)vaddr;
+    }
+
+    auto len() const -> size_t override
+    {
+        return stride().as_uint32_t() * size().height.as_uint32_t();
+    }
+
+private:
+    std::shared_ptr<NativeBuffer> buffer;
+    std::shared_ptr<HybrisGralloc> gralloc;
+    void *vaddr;
+};
 
 void mga::BindResolverTex::bind()
 {
     tex_bind();
 }
 
-void mga::BindResolverTexTarget::bind()
-{
-    upload_to_texture();
-}
 
 mga::Buffer::Buffer(std::shared_ptr<HybrisGralloc> const& hybris_gralloc,
     std::shared_ptr<NativeBuffer> const& buffer_handle,
@@ -61,7 +114,7 @@ mga::Buffer::~Buffer()
     for(auto& it : egl_image_map)
     {
         EGLDisplay disp = it.first.first;
-        egl_extensions->eglDestroyImageKHR(disp, it.second);
+        egl_extensions->base(disp).eglDestroyImageKHR(disp, it.second);
     }
 }
 
@@ -75,13 +128,18 @@ geom::Stride mga::Buffer::stride() const
 {
     ANativeWindowBuffer *anwb = native_buffer->anwb();
     return geom::Stride{anwb->stride *
-                        MIR_BYTES_PER_PIXEL(pixel_format())};
+                        MIR_BYTES_PER_PIXEL(format())};
 }
 
-MirPixelFormat mga::Buffer::pixel_format() const
+MirPixelFormat mga::Buffer::format() const
 {
     ANativeWindowBuffer *anwb = native_buffer->anwb();
     return mga::to_mir_format(anwb->format);
+}
+
+GLuint mga::Buffer::tex_id() const
+{
+    return texture_id;
 }
 
 void mga::Buffer::gl_bind_to_texture()
@@ -127,7 +185,7 @@ void mga::Buffer::do_bind(std::unique_lock<std::mutex> const&)
     auto it = egl_image_map.find(current);
     if (it == egl_image_map.end())
     {
-        image = egl_extensions->eglCreateImageKHR(
+        image = egl_extensions->base(current.first).eglCreateImageKHR(
                     current.first, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID,
                     native_buffer->anwb(), image_attrs);
 
@@ -142,14 +200,19 @@ void mga::Buffer::do_bind(std::unique_lock<std::mutex> const&)
         image = it->second;
     }
 
-    egl_extensions->glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, image);
+    egl_extensions->base(current.first).glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, image);
 }
 
-std::shared_ptr<mg::NativeBuffer> mga::Buffer::native_buffer_handle() const
+mg::NativeBufferBase *mga::Buffer::native_buffer_base()
+{
+    return this;
+}
+
+std::shared_ptr<mga::NativeBuffer> mga::Buffer::native_buffer_handle() const
 {
     std::unique_lock<std::mutex> lk(content_lock);
 
-    auto native_resource = std::shared_ptr<mg::NativeBuffer>(
+    auto native_resource = std::shared_ptr<mga::NativeBuffer>(
         native_buffer.get(),
         [this](NativeBuffer*)
         {
@@ -161,66 +224,23 @@ std::shared_ptr<mg::NativeBuffer> mga::Buffer::native_buffer_handle() const
     return native_resource;
 }
 
-void mga::Buffer::write(unsigned char const* data, size_t data_size)
+auto mga::Buffer::map_writeable() -> std::unique_ptr<mrs::Mapping<unsigned char>>
 {
-    std::unique_lock<std::mutex> lk(content_lock);
-
     native_buffer->ensure_available_for(mga::BufferAccess::write);
 
-    auto bpp = MIR_BYTES_PER_PIXEL(pixel_format());
-    size_t buffer_size_bytes = size().height.as_int() * size().width.as_int() * bpp;
-    if (buffer_size_bytes != data_size)
-        BOOST_THROW_EXCEPTION(std::logic_error("Size of pixels is not equal to size of buffer"));
-
-    void* vaddr{nullptr};
-    int usage = GRALLOC_USAGE_SW_WRITE_OFTEN;
-    int width = size().width.as_uint32_t();
-    int height = size().height.as_uint32_t();
-    int top = 0;
-    int left = 0;
-    if (hybris_gralloc->lock(
-            native_buffer->handle(), usage, top, left, width, height, vaddr) ||
-        !vaddr)
-        BOOST_THROW_EXCEPTION(std::runtime_error("error securing buffer for client cpu use"));
-
-    // Copy line by line in case of stride != width*bpp
-    for (int i = 0; i < height; i++)
-    {
-        int line_offset_in_buffer = stride().as_uint32_t()*i;
-        int line_offset_in_source = bpp*width*i;
-        memcpy((char *)vaddr + line_offset_in_buffer, data + line_offset_in_source, width * bpp);
-    }
-
-    hybris_gralloc->unlock(native_buffer->handle());
+    return std::make_unique<Mapping<unsigned char>>(hybris_gralloc, native_buffer, GRALLOC_USAGE_SW_WRITE_OFTEN);
 }
 
-void mga::Buffer::read(std::function<void(unsigned char const*)> const& do_with_data)
+auto mga::Buffer::map_readable() -> std::unique_ptr<mrs::Mapping<unsigned char const>>
 {
-    std::unique_lock<std::mutex> lk(content_lock);
-
     native_buffer->ensure_available_for(mga::BufferAccess::read);
-    auto buffer_size = size();
 
-    void* vaddr{nullptr};
-    int usage = GRALLOC_USAGE_SW_READ_OFTEN;
-    int width = buffer_size.width.as_uint32_t();
-    int height = buffer_size.height.as_uint32_t();
-
-    int top = 0;
-    int left = 0;
-    if ((hybris_gralloc->lock(
-        native_buffer->handle(), usage, top, left, width, height, vaddr) ) ||
-        !vaddr)
-        BOOST_THROW_EXCEPTION(std::runtime_error("error securing buffer for client cpu use"));
-
-    do_with_data((unsigned char*) vaddr);
-
-    hybris_gralloc->unlock(native_buffer->handle());
+    return std::make_unique<Mapping<unsigned char const>>(hybris_gralloc, native_buffer, GRALLOC_USAGE_SW_READ_OFTEN);
 }
 
-mg::NativeBufferBase* mga::Buffer::native_buffer_base()
+auto mga::Buffer::map_rw() -> std::unique_ptr<mrs::Mapping<unsigned char>>
 {
-    return this;
+    return std::make_unique<Mapping<unsigned char>>(hybris_gralloc, native_buffer, GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN);
 }
 
 void mga::Buffer::secure_for_render()
@@ -282,12 +302,12 @@ void mga::Buffer::add_syncpoint()
 
 void mga::Buffer::tex_bind()
 {
-    bool const needs_initialisation = tex_id == 0;
+    bool const needs_initialisation = texture_id == 0;
     if (needs_initialisation)
     {
-        glGenTextures(1, &tex_id);
+        glGenTextures(1, &texture_id);
     }
-    glBindTexture(GL_TEXTURE_2D, tex_id);
+    glBindTexture(GL_TEXTURE_2D, texture_id);
     if (needs_initialisation)
     {
         // The ShmBuffer *should* be immutable, so we can just upload once.
@@ -297,4 +317,4 @@ void mga::Buffer::tex_bind()
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         gl_bind_to_texture();
     }
-  }
+}

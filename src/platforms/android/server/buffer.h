@@ -21,12 +21,11 @@
 #define MIR_GRAPHICS_ANDROID_BUFFER_H_
 
 #include "mir/graphics/buffer_basic.h"
-#include "mir/renderer/gl/texture_source.h"
-#include "mir/renderer/gl/texture_target.h"
 #include "mir/renderer/sw/pixel_source.h"
 #include "mir/graphics/texture.h"
 
 #include "hybris_gralloc.h"
+#include "native_buffer.h"
 
 #include <hardware/gralloc.h>
 
@@ -69,52 +68,46 @@ protected:
     virtual void tex_bind() = 0;
 };
 
-class BindResolverTexTarget : public renderer::gl::TextureSource
-{
-public:
-    BindResolverTexTarget() = default;
-
-    void bind() override final;
-
-protected:
-    virtual void upload_to_texture() = 0;
-};
+// class BindResolverTexTarget removed - TextureSource not available in Mir 2.x
 
 class NativeBuffer;
 class Buffer: public BufferBasic, public NativeBufferBase,
-              public BindResolverTexTarget,
-              public renderer::gl::TextureTarget,
               public BindResolverTex,
-              public renderer::software::PixelSource
+              public mir::renderer::software::RWMappableBuffer
 {
 public:
     Buffer(std::shared_ptr<HybrisGralloc> const& hybris_gralloc,
-           std::shared_ptr<android::NativeBuffer> const& buffer_handle,
+           std::shared_ptr<NativeBuffer> const& buffer_handle,
            std::shared_ptr<EGLExtensions> const& extensions);
     ~Buffer();
 
     geometry::Size size() const override;
     geometry::Stride stride() const override;
-    MirPixelFormat pixel_format() const override;
-    void gl_bind_to_texture() override;
-    void upload_to_texture() override;
-    void secure_for_render() override;
+    MirPixelFormat format() const override;
+    MirPixelFormat pixel_format() const override { return format(); }
 
-    void bind_for_write() override;
-    void commit() override;
+    NativeBufferBase* native_buffer_base() override;
+    std::shared_ptr<NativeBuffer> native_buffer_handle() const;
+
+    void gl_bind_to_texture();
+    void upload_to_texture();
+    void secure_for_render();
+
+    void bind_for_write();
+    void commit();
 
     //note, you will get the native representation of an android buffer, including
     //the fences associated with the buffer. You must close these fences
-    std::shared_ptr<graphics::NativeBuffer> native_buffer_handle() const override;
 
-    void write(unsigned char const* pixels, size_t size) override;
-    void read(std::function<void(unsigned char const*)> const&) override;
-
-    NativeBufferBase* native_buffer_base() override;
+    auto map_writeable() -> std::unique_ptr<renderer::software::Mapping<unsigned char>> override;
+    auto map_readable() -> std::unique_ptr<renderer::software::Mapping<unsigned char const>> override;
+    auto map_rw() -> std::unique_ptr<renderer::software::Mapping<unsigned char>> override;
 
     gl::Program const& shader(gl::ProgramFactory& cache) const override;
     Layout layout() const override;
     void add_syncpoint() override;
+
+    GLuint tex_id() const override;
 
 protected:
     void tex_bind() override;
@@ -130,7 +123,13 @@ private:
     std::mutex mutable content_lock;
     std::shared_ptr<android::NativeBuffer> native_buffer;
     std::shared_ptr<EGLExtensions> egl_extensions;
-    GLuint tex_id{0};
+    GLuint texture_id{0};
+
+    template <typename T>
+    class Mapping;
+
+    template <typename T>
+    friend class Mapping;
 };
 
 }

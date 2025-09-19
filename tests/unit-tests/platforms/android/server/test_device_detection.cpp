@@ -17,8 +17,8 @@
  */
 
 #include "src/platforms/android/server/device_quirks.h"
-#include "mir/test/doubles/mock_gl.h"
-#include "mir/test/doubles/mock_egl.h"
+#include <mir/test/doubles/mock_gl.h>
+#include <mir/test/doubles/mock_egl.h>
 #include "mir/test/doubles/mock_option.h"
 #include "mir/options/program_option.h"
 #include <hardware/gralloc.h>

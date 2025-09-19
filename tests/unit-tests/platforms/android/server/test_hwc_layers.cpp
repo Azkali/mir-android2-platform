@@ -42,8 +42,8 @@ public:
         native_handle_1 = std::make_shared<NiceMock<mtd::MockAndroidNativeBuffer>>(buffer_size);
         ON_CALL(*mock_buffer, size())
             .WillByDefault(Return(buffer_size));
-        ON_CALL(*mock_buffer, native_buffer_handle())
-            .WillByDefault(Return(native_handle_1));
+        // ON_CALL(*mock_buffer, native_buffer_handle()) // Removed in Mir 2.x
+        //     .WillByDefault(Return(native_handle_1));
 
         list = std::shared_ptr<hwc_display_contents_1_t>(
             static_cast<hwc_display_contents_1_t*>(

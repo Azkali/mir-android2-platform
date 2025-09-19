@@ -19,7 +19,7 @@
 #ifndef MIR_GRAPHICS_ANDROID_VIRTUAL_OUTPUT_H_
 #define MIR_GRAPHICS_ANDROID_VIRTUAL_OUTPUT_H_
 
-#include "mir/graphics/virtual_output.h"
+// #include "mir/graphics/virtual_output.h"  // Removed - not available in Mir 2.x
 
 #include <functional>
 
@@ -30,6 +30,8 @@ namespace graphics
 namespace android
 {
 
+// Virtual output functionality disabled for Mir 2.x compatibility
+/*
 class VirtualOutput : public graphics::VirtualOutput
 {
 public:
@@ -43,6 +45,7 @@ private:
     std::function<void()> enable_virtual_output;
     std::function<void()> disable_virtual_output;
 };
+*/
 
 }
 }

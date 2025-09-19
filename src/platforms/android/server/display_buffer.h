@@ -29,6 +29,8 @@
 #include "hwc_fallback_gl_renderer.h"
 #include "overlay_optimization.h"
 #include <system/window.h>
+#include <vector>
+#include <iostream>
 
 namespace mir
 {

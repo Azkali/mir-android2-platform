@@ -48,8 +48,8 @@ mga::ServerRenderWindow::ServerRenderWindow(
 
 std::shared_ptr<mga::NativeBuffer> mga::ServerRenderWindow::driver_requests_buffer(int fence)
 {
-    auto buffer = fb_bundle->buffer_for_render();
-    auto handle = mga::to_native_buffer_checked(buffer->native_buffer_handle());
+    auto buffer = dynamic_pointer_cast<mga::Buffer>(fb_bundle->buffer_for_render());
+    auto handle = buffer->native_buffer_handle();
     if (fence >= 0)
     {
         handle->reset_fence();

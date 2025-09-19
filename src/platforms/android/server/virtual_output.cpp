@@ -16,28 +16,5 @@
  * Authored by: Alberto Aguirre <alberto.aguirre@canonical.com>
  */
 
-#include "virtual_output.h"
-
-namespace mga=mir::graphics::android;
-
-mga::VirtualOutput::VirtualOutput(std::function<void()> enable_virtual_output,
-                                  std::function<void()> disable_virtual_output)
-    : enable_virtual_output{enable_virtual_output},
-      disable_virtual_output{disable_virtual_output}
-{
-}
-
-mga::VirtualOutput::~VirtualOutput()
-{
-    disable();
-}
-
-void mga::VirtualOutput::enable()
-{
-    enable_virtual_output();
-}
-
-void mga::VirtualOutput::disable()
-{
-    disable_virtual_output();
-}
+// VirtualOutput class removed in Mir 2.x - this file is no longer needed
+// All content has been commented out as VirtualOutput is not available in Mir 2.x

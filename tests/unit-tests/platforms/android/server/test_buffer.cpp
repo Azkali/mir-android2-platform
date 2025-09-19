@@ -21,7 +21,7 @@
 #include "sync_fence.h"
 #include "native_buffer.h"
 #include "mir/test/fake_shared.h"
-#include "mir/test/doubles/mock_egl.h"
+#include <mir/test/doubles/mock_egl.h>
 #include "mir/test/doubles/mock_fence.h"
 #include "mir/test/doubles/mock_hybris_gralloc.h"
 #include "mir/test/doubles/mock_android_native_buffer.h"
@@ -30,6 +30,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <memory>
+#include <cstring>
 
 namespace mg = mir::graphics;
 namespace mga = mir::graphics::android;
@@ -98,13 +99,13 @@ TEST_F(AndroidBuffer, returns_native_buffer_times_two)
 
     mga::Buffer buffer(mock_hybris_gralloc, mock_native_buffer, extensions);
     {
-        auto native_resource = mga::to_native_buffer_checked(buffer.native_buffer_handle());
-        EXPECT_EQ(std::static_pointer_cast<mg::NativeBuffer>(mock_native_buffer), native_resource);
+        auto native_resource = mga::to_native_buffer_checked(static_cast<mga::NativeBuffer*>(buffer.native_buffer_base()));
+        EXPECT_EQ(mock_native_buffer.get(), native_resource);
         native_resource->update_usage(acquire_fake_fence_fd1, mga::BufferAccess::write);
     }
     {
-        auto native_resource = mga::to_native_buffer_checked(buffer.native_buffer_handle());
-        EXPECT_EQ(std::static_pointer_cast<mg::NativeBuffer>(mock_native_buffer), native_resource);
+        auto native_resource = mga::to_native_buffer_checked(static_cast<mga::NativeBuffer*>(buffer.native_buffer_base()));
+        EXPECT_EQ(mock_native_buffer.get(), native_resource);
         native_resource->update_usage(acquire_fake_fence_fd2, mga::BufferAccess::read);
     }
 }
@@ -123,7 +124,9 @@ TEST_F(AndroidBuffer, write_detects_incorrect_size)
     mga::Buffer buffer(mock_hybris_gralloc, mock_native_buffer, extensions);
     unsigned char pix = {0x32};
     EXPECT_THROW({
-        buffer.write(&pix, sizeof(pix));
+        auto mapping = buffer.map_writeable();
+        // This should fail because we're trying to write incorrect size data
+        memcpy(mapping->data(), &pix, sizeof(pix));
     }, std::logic_error);
 }
 
@@ -134,11 +137,8 @@ TEST_F(AndroidBuffer, write_throws_on_failed_mapping_indicated_by_rc_code)
         .WillOnce(Return(-1));
 
     mga::Buffer buffer(mock_hybris_gralloc, mock_native_buffer, extensions);
-    size_t sz = anwb->height * anwb->width * MIR_BYTES_PER_PIXEL(pf);
-    auto const pixels = std::shared_ptr<unsigned char>(
-        static_cast<unsigned char*>(::operator new(sizeof(unsigned char) *sz)));
     EXPECT_THROW({
-        buffer.write(pixels.get(), sz);
+        auto mapping = buffer.map_writeable();
     }, std::runtime_error);
 }
 
@@ -149,11 +149,8 @@ TEST_F(AndroidBuffer, write_throws_on_failed_mapping_indicated_by_nullptr_return
         .WillOnce(DoAll(SetArgReferee<6>(nullptr), Return(0)));
 
     mga::Buffer buffer(mock_hybris_gralloc, mock_native_buffer, extensions);
-    size_t sz = anwb->height * anwb->width * MIR_BYTES_PER_PIXEL(pf);
-    auto const pixels = std::shared_ptr<unsigned char>(
-        static_cast<unsigned char*>(::operator new(sizeof(unsigned char) *sz)));
     EXPECT_THROW({
-        buffer.write(pixels.get(), sz);
+        auto mapping = buffer.map_writeable();
     }, std::runtime_error);
 }
 
@@ -161,7 +158,6 @@ TEST_F(AndroidBuffer, writes_pixels)
 {
     using namespace testing;
     size_t strided_sz = anwb->height * anwb->stride * MIR_BYTES_PER_PIXEL(pf);
-    size_t sz = anwb->height * anwb->width * MIR_BYTES_PER_PIXEL(pf);
     auto const mapped_pixels = std::shared_ptr<unsigned char>(
         static_cast<unsigned char*>(::operator new(sizeof(unsigned char) * strided_sz)));
 
@@ -173,9 +169,9 @@ TEST_F(AndroidBuffer, writes_pixels)
 
     mga::Buffer buffer(mock_hybris_gralloc, mock_native_buffer, extensions);
 
-    auto const pixels = std::shared_ptr<unsigned char>(
-        static_cast<unsigned char*>(::operator new(sizeof(unsigned char) *sz)));
-    buffer.write(pixels.get(), sz);
+    auto mapping = buffer.map_writeable();
+    // Test that we can access the mapped data
+    EXPECT_THAT(mapping->data(), Ne(nullptr));
     Mock::VerifyAndClearExpectations(mock_hybris_gralloc.get());
 }
 
@@ -187,7 +183,7 @@ TEST_F(AndroidBuffer, read_throws_on_failed_mapping_indicated_by_rc_code)
 
     mga::Buffer buffer(mock_hybris_gralloc, mock_native_buffer, extensions);
     EXPECT_THROW({
-        buffer.read([](unsigned char const*){});
+        auto mapping = buffer.map_readable();
     }, std::runtime_error);
 }
 
@@ -199,7 +195,7 @@ TEST_F(AndroidBuffer, read_throws_on_failed_mapping_indicated_by_nullptr_return)
 
     mga::Buffer buffer(mock_hybris_gralloc, mock_native_buffer, extensions);
     EXPECT_THROW({
-        buffer.read([](unsigned char const*){});
+        auto mapping = buffer.map_readable();
     }, std::runtime_error);
 }
 
@@ -217,9 +213,7 @@ TEST_F(AndroidBuffer, reads_pixels)
     EXPECT_CALL(*mock_hybris_gralloc, unlock(_));
 
     mga::Buffer buffer(mock_hybris_gralloc, mock_native_buffer, extensions);
-    buffer.read([](unsigned char const* pixels)
-    {
-        EXPECT_THAT(pixels, Ne(nullptr));
-    });
+    auto mapping = buffer.map_readable();
+    EXPECT_THAT(mapping->data(), Ne(nullptr));
     Mock::VerifyAndClearExpectations(mock_hybris_gralloc.get());
 }

@@ -21,9 +21,9 @@
 #include "mir/graphics/platform.h"
 #include "mir/graphics/graphic_buffer_allocator.h"
 #include "mir/graphics/buffer_properties.h"
-#include "mir/graphics/platform_ipc_operations.h"
-#include "mir/test/doubles/mock_egl.h"
-#include "mir/test/doubles/mock_gl.h"
+// #include "mir/graphics/platform_ipc_operations.h" // Removed in Mir 2.x - IPC operations removed
+#include <mir/test/doubles/mock_egl.h>
+#include <mir/test/doubles/mock_gl.h>
 #include "mir/test/doubles/null_emergency_cleanup_registry.h"
 #include "mir/test/doubles/stub_display_report.h"
 #include "mir/test/doubles/null_logger.h"
@@ -46,15 +46,16 @@ public:
     {
     }
 
-    std::shared_ptr<mg::Platform> create_platform()
-    {
-      return create_host_platform(
-          std::make_shared<mir::options::ProgramOption>(),
-          std::make_shared<mtd::NullEmergencyCleanupRegistry>(),
-          std::make_shared<mtd::NullConsoleServices>(),
-          std::make_shared<mtd::StubDisplayReport>(),
-          logger);
-    }
+    // Platform creation API changed significantly in Mir 2.x
+    // std::shared_ptr<mg::Platform> create_platform()
+    // {
+    //   return create_host_platform(
+    //       std::make_shared<mir::options::ProgramOption>(),
+    //       std::make_shared<mtd::NullEmergencyCleanupRegistry>(),
+    //       std::make_shared<mtd::NullConsoleServices>(),
+    //       std::make_shared<mtd::StubDisplayReport>(),
+    //       logger);
+    // }
 
     std::shared_ptr<ml::Logger> logger;
 

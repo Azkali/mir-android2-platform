@@ -7,3 +7,4 @@ CMAKE_DEPENDENT_OPTION(
 
 
 add_subdirectory(platforms)
+# add_subdirectory(client)  # Removed - client platform not needed for Mir 2.x

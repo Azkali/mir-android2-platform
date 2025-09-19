@@ -18,7 +18,7 @@
 
 #include "src/platforms/android/server/buffer.h"
 #include "mir/graphics/egl_extensions.h"
-#include "mir/test/doubles/mock_egl.h"
+#include <mir/test/doubles/mock_egl.h>
 #include "mir/test/doubles/mock_fence.h"
 #include "mir/test/doubles/mock_hybris_gralloc.h"
 #include "mir/test/doubles/mock_android_native_buffer.h"

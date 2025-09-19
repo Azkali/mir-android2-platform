@@ -27,7 +27,7 @@
 #include "mir/test/doubles/stub_renderable.h"
 #include "mir/test/doubles/stub_swapping_gl_context.h"
 #include "mir/test/doubles/mock_swapping_gl_context.h"
-#include "mir/test/doubles/mock_egl.h"
+#include <mir/test/doubles/mock_egl.h>
 #include "mir/test/auto_unblock_thread.h"
 #include "mir/test/doubles/mock_hwc_device_wrapper.h"
 #include "mir/test/doubles/stub_renderable_list_compositor.h"

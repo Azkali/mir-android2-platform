@@ -34,6 +34,7 @@
 #include <array>
 #include <map>
 #include <unordered_map>
+#include <map>
 
 namespace mir
 {

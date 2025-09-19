@@ -32,7 +32,7 @@ void fill_hwc_layer(
     hwc_layer_1_t& layer,
     hwc_rect_t* visible_rect,
     mir::geometry::Rectangle const& position,
-    mir::graphics::Buffer const& buffer,
+    mir::graphics::Buffer& buffer,
     int type, int flags);
 }
 }
@@ -88,7 +88,7 @@ MATCHER_P(MatchesCommonFields, value, std::string(testing::PrintToString(value))
     EXPECT_THAT(arg.visibleRegionScreen.numRects, MatchesMember(value.visibleRegionScreen.numRects, "visibleRegionScreen.numRects"));
     EXPECT_THAT(arg.planeAlpha, MatchesMember(value.planeAlpha, "planeAlpha"));
     EXPECT_THAT(arg.acquireFenceFd, MatchesMember(value.acquireFenceFd, "acquireFenceFd"));
-    EXPECT_THAT(arg.releaseFenceFd, MatchesMember(value.releaseFenceFd, "releaseFenceFd")); 
+    EXPECT_THAT(arg.releaseFenceFd, MatchesMember(value.releaseFenceFd, "releaseFenceFd"));
     return !(::testing::Test::HasFailure());
 }
 
@@ -114,7 +114,7 @@ MATCHER_P(MatchesLayer, value, std::string(testing::PrintToString(value)) )
 MATCHER_P(MatchesList, value, std::string(""))
 {
     if (arg == nullptr)
-        return (value.empty()); 
+        return (value.empty());
     auto const& list = *arg;
 
     EXPECT_EQ(list.numHwLayers, value.size());
@@ -144,7 +144,7 @@ MATCHER_P2(MatchesLists, primary, external, std::string(""))
 MATCHER_P3(MatchesListWithEglFields, value, dpy, sur, std::string(""))
 {
     if (arg[0] == nullptr)
-        return (value.empty()); 
+        return (value.empty());
     EXPECT_EQ(arg[0]->dpy, dpy);
     EXPECT_EQ(arg[0]->sur, sur);
     EXPECT_THAT(arg, MatchesPrimaryList(value));

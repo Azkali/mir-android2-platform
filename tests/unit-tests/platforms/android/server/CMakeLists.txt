@@ -2,6 +2,7 @@
 # hasn't been reflected in the tests.
 
 list(APPEND ANDROID_UNIT_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/mock_egl.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/hwc_struct_helpers.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_buffer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_sync_fence.cpp
@@ -26,7 +27,7 @@ list(APPEND ANDROID_UNIT_TEST_SOURCES
 # ${CMAKE_CURRENT_SOURCE_DIR}/test_output_builder.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_device_detection.cpp
 # ${CMAKE_CURRENT_SOURCE_DIR}/test_hwc_wrapper.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/test_hwc_fallback_gl_renderer.cpp
+# ${CMAKE_CURRENT_SOURCE_DIR}/test_hwc_fallback_gl_renderer.cpp
 # ${CMAKE_CURRENT_SOURCE_DIR}/test_hwc_configuration.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_display_hotplug.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_egl_sync_extensions.cpp

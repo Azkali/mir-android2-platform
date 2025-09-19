@@ -26,6 +26,12 @@
 
 #include <vector>
 #include <memory>
+#include <functional>
+
+// Forward declarations
+struct wl_resource;
+struct wl_display;
+namespace mir { class Executor; }
 
 namespace mir
 {
@@ -39,29 +45,54 @@ struct StubBufferAllocator : public graphics::GraphicBufferAllocator
     std::shared_ptr<graphics::Buffer> alloc_buffer(
         graphics::BufferProperties const& properties)
     {
-        return std::make_shared<StubBuffer>(std::make_shared<mir_test_framework::NativeBuffer>(properties), properties.size);
+        // Create a StubBuffer with just the size since the constructor signature changed
+        return std::make_shared<StubBuffer>(properties.size);
     }
 
-    std::shared_ptr<graphics::Buffer> alloc_software_buffer(geometry::Size sz, MirPixelFormat pf)
+    std::shared_ptr<graphics::Buffer> alloc_software_buffer(geometry::Size sz, MirPixelFormat /* pf */)
     {
-        graphics::BufferProperties properties{sz, pf, graphics::BufferUsage::software};
-        return std::make_shared<StubBuffer>(std::make_shared<mir_test_framework::NativeBuffer>(properties), sz);
+        // Create a StubBuffer with just the size since the constructor signature changed
+        return std::make_shared<StubBuffer>(sz);
     }
 
-    std::shared_ptr<graphics::Buffer> alloc_buffer(geometry::Size sz, uint32_t, uint32_t flags)
+    std::shared_ptr<graphics::Buffer> alloc_buffer(geometry::Size sz, uint32_t /* unused */, uint32_t /* flags */)
     {
-        graphics::BufferProperties properties{sz, mir_pixel_format_abgr_8888, graphics::BufferUsage::hardware};
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-        if (mir_buffer_usage_software == static_cast<MirBufferUsage>(flags))
-            properties.usage = graphics::BufferUsage::software;
-#pragma GCC diagnostic pop
-        return std::make_shared<StubBuffer>(std::make_shared<mir_test_framework::NativeBuffer>(properties), sz);
+        // Create a StubBuffer with just the size since the constructor signature changed
+        return std::make_shared<StubBuffer>(sz);
     }
 
     std::vector<MirPixelFormat> supported_pixel_formats()
     {
         return {};
+    }
+
+    // Mir 2.x required methods
+    std::shared_ptr<graphics::Buffer> buffer_from_shm(
+        std::shared_ptr<renderer::software::RWMappableBuffer> /* data */,
+        std::function<void()>&& /* on_consumed */,
+        std::function<void()>&& /* on_release */) override
+    {
+        // Placeholder implementation
+        return nullptr;
+    }
+
+    std::shared_ptr<graphics::Buffer> buffer_from_resource(
+        wl_resource* /* buffer */,
+        std::function<void()>&& /* on_consumed */,
+        std::function<void()>&& /* on_release */) override
+    {
+        // Placeholder implementation
+        return nullptr;
+    }
+
+    void bind_display(wl_display* /* display */, std::shared_ptr<Executor> /* wayland_executor */) override
+    {
+        // Placeholder implementation
+    }
+
+    void unbind_display(wl_display* /* display */) override
+    {
+        // Placeholder implementation
     }
 };
 

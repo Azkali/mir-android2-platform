@@ -16,10 +16,11 @@
  * Authored by: Kevin DuBois <kevin.dubois@canonical.com>
  */
 
-#ifndef MIR_TEST_DOUBLES_MOCK_BUFFER_IPC_MESSAGE_H_
-#define MIR_TEST_DOUBLES_MOCK_BUFFER_IPC_MESSAGE_H_
+// IPC operations removed in Mir 2.x - this entire file is disabled
+// #ifndef MIR_TEST_DOUBLES_MOCK_BUFFER_IPC_MESSAGE_H_
+// #define MIR_TEST_DOUBLES_MOCK_BUFFER_IPC_MESSAGE_H_
 
-#include "mir/graphics/buffer_ipc_message.h"
+// #include "mir/graphics/buffer_ipc_message.h" // Removed in Mir 2.x - IPC operations removed
 
 #include <gmock/gmock.h>
 
@@ -30,7 +31,8 @@ namespace test
 namespace doubles
 {
 
-struct MockBufferIpcMessage : public graphics::BufferIpcMessage
+// IPC operations removed in Mir 2.x - disable this mock
+// struct MockBufferIpcMessage : public graphics::BufferIpcMessage
 {
     ~MockBufferIpcMessage() noexcept {}
     MOCK_METHOD1(pack_fd, void(Fd const&));

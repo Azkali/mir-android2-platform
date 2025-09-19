@@ -56,8 +56,8 @@ struct mga::DisplayChangePipe
         int pipes_raw[2] {-1, -1};
         if (::pipe2(pipes_raw, O_CLOEXEC | O_NONBLOCK))
             BOOST_THROW_EXCEPTION(std::runtime_error("failed to create display change pipe"));
-        read_pipe = mir::Fd{pipes_raw[0]}; 
-        write_pipe = mir::Fd{pipes_raw[1]}; 
+        read_pipe = mir::Fd{pipes_raw[0]};
+        write_pipe = mir::Fd{pipes_raw[1]};
     }
 
     void notify_change()
@@ -109,7 +109,7 @@ void set_powermode_all_displays(
 {
     power_mode_safe(mga::DisplayName::primary, control, config.primary(), intended_mode);
     if (config.external().connected)
-        power_mode_safe(mga::DisplayName::external, control, config.external(), intended_mode); 
+        power_mode_safe(mga::DisplayName::external, control, config.external(), intended_mode);
 }
 
 std::unique_ptr<mga::ConfigurableDisplaySink> create_display_buffer(
@@ -125,7 +125,7 @@ std::unique_ptr<mga::ConfigurableDisplaySink> create_display_buffer(
     std::shared_ptr<mga::FramebufferBundle> fbs{display_buffer_builder.create_framebuffers(config)};
     auto cache = std::make_shared<mga::InterpreterCache>();
     mga::DeviceQuirks quirks(mga::PropertiesOps{}, gl_context);
-    auto interpreter = std::make_shared<mga::ServerRenderWindow>(fbs, config.current_format, cache, quirks); 
+    auto interpreter = std::make_shared<mga::ServerRenderWindow>(fbs, config.current_format, cache, quirks);
     auto native_window = std::make_shared<mga::MirNativeWindow>(interpreter, report);
     return std::unique_ptr<mga::ConfigurableDisplaySink>(new mga::DisplaySink(
         name,

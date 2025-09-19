@@ -53,8 +53,8 @@ public:
     virtual bool needs_fb_target() const = 0;
     virtual ~LayerAdapter() = default;
     LayerAdapter() = default;
-    LayerAdapter(LayerAdapter const&) = delete; 
-    LayerAdapter& operator=(LayerAdapter const&) = delete; 
+    LayerAdapter(LayerAdapter const&) = delete;
+    LayerAdapter& operator=(LayerAdapter const&) = delete;
 };
 
 //HWC 1.0 has int sourceCrop and no fbtarget
@@ -93,25 +93,25 @@ public:
         LayerType,
         geometry::Rectangle const& screen_position,
         bool alpha_enabled,
-        std::shared_ptr<Buffer> const& buffer);
+        std::shared_ptr<mir::graphics::Buffer> const& buffer);
 
     HWCLayer& operator=(HWCLayer && layer);
     HWCLayer(HWCLayer && layer);
 
     HWCLayer& operator=(HWCLayer const& layer) = delete;
     HWCLayer(HWCLayer const& layer) = delete;
-    
+
     bool setup_layer(
         LayerType type,
         geometry::Rectangle const& position,
         bool alpha_enabled,
-        std::shared_ptr<Buffer> const& buffer);
+        std::shared_ptr<mir::graphics::Buffer> const& buffer);
 
     bool is_overlay() const;
     bool needs_gl_render() const;
     void set_acquirefence();
     void release_buffer();
-    std::shared_ptr<Buffer> buffer();
+    std::shared_ptr<mir::graphics::Buffer> buffer();
     LayerType type();
 
 private:
@@ -119,7 +119,7 @@ private:
     hwc_layer_1_t* hwc_layer;
     std::shared_ptr<hwc_display_contents_1_t> hwc_list;
     hwc_rect_t visible_rect;
-    std::shared_ptr<Buffer> associated_buffer;
+    std::shared_ptr<mir::graphics::Buffer> associated_buffer;
     LayerType layer_type;
 };
 }

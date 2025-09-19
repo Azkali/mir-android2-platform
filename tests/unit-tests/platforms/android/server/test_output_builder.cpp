@@ -29,8 +29,8 @@
 #include "mir/test/fake_shared.h"
 #include "mir/test/doubles/mock_android_hw.h"
 #include "mir/test/doubles/mock_fb_hal_device.h"
-#include "mir/test/doubles/mock_egl.h"
-#include "mir/test/doubles/mock_gl.h"
+#include <mir/test/doubles/mock_egl.h>
+#include <mir/test/doubles/mock_gl.h>
 #include "mir/test/doubles/mock_android_native_buffer.h"
 #include "mir/test/doubles/mock_hwc_report.h"
 #include "mir/test/doubles/mock_hwc_device_wrapper.h"
@@ -222,11 +222,11 @@ TEST_F(HalComponentFactory, doesnt_complain_if_version_is_supported)
 {
     using namespace testing;
     auto supported_versions = {
-        mga::HwcVersion::hwc10, 
-        mga::HwcVersion::hwc11, 
-        mga::HwcVersion::hwc12, 
-        mga::HwcVersion::hwc13, 
-        mga::HwcVersion::hwc14, 
+        mga::HwcVersion::hwc10,
+        mga::HwcVersion::hwc11,
+        mga::HwcVersion::hwc12,
+        mga::HwcVersion::hwc13,
+        mga::HwcVersion::hwc14,
         mga::HwcVersion::hwc15 };
     for (auto supported_version : supported_versions)
     {

@@ -75,7 +75,7 @@ struct StubHwcConfiguration : public graphics::android::HwcConfiguration
         config.id = as_output_id(name);
         return config;
     }
-    
+
     graphics::android::ConfigChangeSubscription subscribe_to_config_changes(
         std::function<void()> const&,
         std::function<void(graphics::android::DisplayName,
@@ -128,13 +128,13 @@ struct StubDisplayBuilder : public graphics::android::DisplayComponentFactory
         std::swap(config, c);
         return c;
     }
-    
+
     void with_next_config(std::function<void(MockHwcConfiguration& mock_config)> const& fn)
     {
         std::unique_ptr<MockHwcConfiguration> mock_config{
             new testing::NiceMock<MockHwcConfiguration>()};
         fn(*mock_config);
-        config = std::move(mock_config); 
+        config = std::move(mock_config);
     }
 
     std::unique_ptr<graphics::CommandStreamSync> create_command_stream_sync()

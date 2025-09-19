@@ -26,7 +26,7 @@
 #include "mir/test/fake_shared.h"
 #include "mir/test/doubles/mock_android_native_buffer.h"
 #include "mir/test/doubles/null_gl_context.h"
-#include "mir/test/doubles/mock_egl.h"
+#include <mir/test/doubles/mock_egl.h>
 #include "mir_toolkit/common.h"
 #include <hardware/gralloc.h>
 #include <gtest/gtest.h>
@@ -55,7 +55,7 @@ struct StubPropertiesWrapper : mga::PropertiesWrapper
             strncpy(value, name.c_str(), name.size());
         else
             strncpy(value, default_value, PROP_VALUE_MAX);
-        return 0;    
+        return 0;
     }
 
     std::string name;
@@ -84,8 +84,9 @@ TEST_F(ServerRenderWindow, returns_buffer_on_request)
 
     EXPECT_CALL(*mock_fb_bundle, buffer_for_render())
         .WillOnce(Return(mock_buffer));
-    EXPECT_CALL(*mock_buffer, native_buffer_handle())
-        .WillOnce(Return(stub_buffer));
+    // native_buffer_handle() removed in Mir 2.x
+    // EXPECT_CALL(*mock_buffer, native_buffer_handle())
+    //     .WillOnce(Return(stub_buffer));
 
     std::shared_ptr<mg::Buffer> tmp = mock_buffer;
     std::shared_ptr<mga::NativeBuffer> tmp2 = stub_buffer;
@@ -103,8 +104,9 @@ TEST_F(ServerRenderWindow, updates_fences_and_returns_buffer_on_queue)
 
     EXPECT_CALL(*mock_fb_bundle, buffer_for_render())
         .WillOnce(Return(mock_buffer));
-    EXPECT_CALL(*mock_buffer, native_buffer_handle())
-        .WillOnce(Return(stub_buffer));
+    // native_buffer_handle() removed in Mir 2.x
+    // EXPECT_CALL(*mock_buffer, native_buffer_handle())
+    //     .WillOnce(Return(stub_buffer));
 
     render_window.driver_requests_buffer(-1);
     Mock::VerifyAndClearExpectations(mock_fb_bundle.get());
@@ -130,8 +132,9 @@ TEST_F(ServerRenderWindow, clears_fence_when_quirk_present)
 
     EXPECT_CALL(*mock_fb_bundle, buffer_for_render())
         .WillOnce(Return(mock_buffer));
-    EXPECT_CALL(*mock_buffer, native_buffer_handle())
-        .WillOnce(Return(stub_buffer));
+    // native_buffer_handle() removed in Mir 2.x
+    // EXPECT_CALL(*mock_buffer, native_buffer_handle())
+    //     .WillOnce(Return(stub_buffer));
 
     render_window.driver_requests_buffer(-1);
     Mock::VerifyAndClearExpectations(mock_fb_bundle.get());

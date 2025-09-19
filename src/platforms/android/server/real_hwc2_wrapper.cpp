@@ -18,6 +18,7 @@
 
 #include "mir/graphics/frame.h"
 #include "real_hwc2_wrapper.h"
+#include <iostream>
 #include "hwc_layerlist.h"
 #include "swapping_gl_context.h"
 #include "native_buffer.h"
@@ -259,11 +260,13 @@ void mga::RealHwc2Wrapper::prepare(
 void mga::RealHwc2Wrapper::set(
     std::list<DisplayContents> const& contents) const
 {
+
    // report->report_set_list(hwc1_displays);
     std::unordered_map<int, std::shared_ptr<mg::Buffer>> next_client_target_buffers;
 
     for (auto content : contents) {
         auto display_id = as_hwc_display(content.name);
+
         if (!active_displays[display_id])
             continue;
 
@@ -273,14 +276,16 @@ void mga::RealHwc2Wrapper::set(
             bool sync_before_set = true;
 
             std::shared_ptr<mg::Buffer> buffer = nullptr;
+
             for (auto& content : contents)
             {
                 if (content.name == display_name(display_id)) {
                     for (auto& it : content.list) {
                         //assert(buffer == nullptr); // There should be only a single layer with buffer
                         if (it.layer.type() == mga::LayerType::gl_rendered ||
-                            it.layer.type() == mga::LayerType::framebuffer_target)
+                            it.layer.type() == mga::LayerType::framebuffer_target) {
                             buffer = it.layer.buffer();
+                        }
                     }
                 }
             }
@@ -291,7 +296,7 @@ void mga::RealHwc2Wrapper::set(
             }
 
             auto acquire_fence_fd = fblayer.acquireFenceFd;
-            auto native_buffer = mga::to_native_buffer_checked(buffer->native_buffer_handle());
+            auto native_buffer = std::dynamic_pointer_cast<mga::Buffer>(buffer)->native_buffer_handle();
 
             hwc2_compat_display_set_client_target(hwc2_display, /* slot */0, native_buffer->anwb(),
                                                 acquire_fence_fd,
@@ -335,8 +340,8 @@ void mga::RealHwc2Wrapper::set(
 
             // Assign the present fence obtained from the HWC2 present call to guard access to the previous frame buffer
             if (onscreen_client_target_buffers.find(display_id) != onscreen_client_target_buffers.end()) {
-                auto& previous_buffer = onscreen_client_target_buffers[display_id];
-                auto previous_native_buffer = mga::to_native_buffer_checked(previous_buffer->native_buffer_handle());
+                auto previous_buffer = std::dynamic_pointer_cast<mga::Buffer>(onscreen_client_target_buffers[display_id]);
+                auto previous_native_buffer = previous_buffer->native_buffer_handle();
                 previous_native_buffer->update_usage(presentFence, mga::BufferAccess::read);
             } else {
                 close(presentFence);

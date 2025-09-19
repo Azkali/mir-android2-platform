@@ -18,9 +18,9 @@
  * Kevin DuBois <kevin.dubois@canonical.com>
  */
 
-#include "mir/client/egl_native_surface.h"
+// #include "mir/client/egl_native_surface.h"  // Removed - client-specific code not available in Mir 2.x
 
-#include "mir/test/doubles/mock_egl.h"
+#include <mir/test/doubles/mock_egl.h>
 #include <gtest/gtest.h>
 
 namespace mtd = mir::test::doubles;
@@ -142,7 +142,7 @@ mtd::MockEGL::MockEGL()
         }));
 
     ON_CALL(*this, eglSwapBuffers(_,_))
-        .WillByDefault(Return(EGL_TRUE));                              
+        .WillByDefault(Return(EGL_TRUE));
 
     ON_CALL(*this, eglGetCurrentDisplay())
     .WillByDefault(Return(fake_egl_display));
@@ -202,11 +202,11 @@ void mtd::MockEGL::provide_stub_platform_buffer_swapping()
 
     ON_CALL(*this, eglSwapBuffers(_,_))
         .WillByDefault(Invoke(
-            [&](EGLDisplay,EGLSurface surface) -> EGLBoolean
+            [&](EGLDisplay,EGLSurface /*surface*/) -> EGLBoolean
             {
-                auto mir_surf = reinterpret_cast<mir::client::EGLNativeSurface*>(surface);
-                mir_surf->swap_buffers_sync();
-                return true;
+                // Client-specific code removed - Mir 2.x no longer has mirclient platform
+                // Just return success for testing purposes
+                return EGL_TRUE;
             }));
 }
 

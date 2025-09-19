@@ -1,5 +1,5 @@
 /*
- * Copyright © 2014 Canonical Ltd.
+ * Copyright © 2012,2013 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License version 3,
@@ -16,27 +16,5 @@
  * Authored by: Kevin DuBois <kevin.dubois@canonical.com>
  */
 
-#ifndef MIR_GRAPHICS_ANDROID_IPC_OPERATIONS_H_
-#define MIR_GRAPHICS_ANDROID_IPC_OPERATIONS_H_
-
-#include "mir/graphics/platform_ipc_operations.h"
-
-namespace mir
-{
-namespace graphics
-{
-namespace android
-{
-class IpcOperations : public PlatformIpcOperations
-{
-public:
-    void pack_buffer(BufferIpcMessage&, Buffer const&, BufferIpcMsgType) const override;
-    void unpack_buffer(BufferIpcMessage&, Buffer const&) const override;
-    std::shared_ptr<PlatformIPCPackage> connection_ipc_package() override;
-    PlatformOperationMessage platform_operation(
-        unsigned int const opcode, PlatformOperationMessage const& message) override;
-};
-}
-}
-}
-#endif /* MIR_GRAPHICS_ANDROID_IPC_OPERATIONS_H_ */
+// IPC operations removed in Mir 2.x - this file is no longer needed
+// All content has been commented out as IPC operations are not available in Mir 2.x

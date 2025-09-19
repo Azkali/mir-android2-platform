@@ -5,6 +5,7 @@ find_package(Protobuf REQUIRED)
 include_directories(
   ${ANDROID_HEADERS_INCLUDE_DIRS}
   ${PROJECT_SOURCE_DIR}/src/platforms/android/include
+  /usr/include/mirtest
 )
 add_definitions(
     -DMIR_SERVER_GRAPHICS_PLATFORM_ABI_STRING="${MIR_SERVER_GRAPHICS_PLATFORM_ABI}"
@@ -21,6 +22,7 @@ if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
 endif()
 
 add_subdirectory(server)
+# add_subdirectory(client)  # Removed - client platform not needed for Mir 2.x
 
 mir_add_wrapped_executable(mir_unit_tests_android2
   ${ANDROID_UNIT_TEST_SOURCES}
@@ -42,10 +44,12 @@ endif()
 target_link_libraries(
   mir_unit_tests_android2
   mirsharedandroid-static
+  # client_platform_common  # Removed - client platform not needed for Mir 2.x
   server_platform_common
   mir-test-doubles-platform-static
 
   ${MIRTEST_LDFLAGS}
+  -lmir-test-assist-internal
   ${PROTOBUF_LITE_LIBRARIES}
   ${GTEST_BOTH_LIBRARIES}
   ${GMOCK_LIBRARIES}
@@ -53,6 +57,7 @@ target_link_libraries(
   ${LIBHARDWARE_LDFLAGS} ${LIBHARDWARE_LIBRARIES}
   ${DEVICEINFO_LDFLAGS} ${DEVICEINFO_LIBRARIES}
   -lhwc2 -lgralloc -lhybris-eglplatformcommon -lsync
+  ${EGL_LDFLAGS} ${EGL_LIBRARIES}
   ${ANDROID_PROPERTIES_LDFLAGS} ${ANDROID_PROPERTIES_LIBRARIES}
   ${WAYLAND_SERVER_LDFLAGS} ${WAYLAND_SERVER_LIBRARIES}
   dl

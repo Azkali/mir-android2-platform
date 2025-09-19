@@ -38,10 +38,25 @@ namespace test
 namespace doubles
 {
 
+class StubMapping : public renderer::software::Mapping<unsigned char>
+{
+public:
+    StubMapping(std::vector<unsigned char>& data) : data_(data) {}
+
+    virtual unsigned char* data() override { return data_.data(); }
+    virtual size_t len() const override { return data_.size(); }
+    virtual MirPixelFormat format() const override { return mir_pixel_format_abgr_8888; }
+    virtual geometry::Stride stride() const override { return geometry::Stride{0}; }
+    virtual geometry::Size size() const override { return geometry::Size{0, 0}; }
+
+private:
+    std::vector<unsigned char>& data_;
+};
+
 class StubBuffer :
-    public graphics::BufferBasic,
+    public graphics::Buffer,
     public graphics::NativeBufferBase,
-    public renderer::software::PixelSource
+    public renderer::software::WriteMappableBuffer
 {
 public:
     StubBuffer()
@@ -68,7 +83,7 @@ public:
     {
     }
 
-    StubBuffer(std::shared_ptr<graphics::NativeBuffer> const& native_buffer, geometry::Size const& size)
+    StubBuffer(std::shared_ptr<graphics::NativeBufferBase> const& native_buffer, geometry::Size const& size)
         : StubBuffer{
               native_buffer,
               graphics::BufferProperties{
@@ -80,7 +95,7 @@ public:
     {
     }
 
-    StubBuffer(std::shared_ptr<graphics::NativeBuffer> const& native_buffer)
+    StubBuffer(std::shared_ptr<graphics::NativeBufferBase> const& native_buffer)
         : StubBuffer{native_buffer, {}}
     {
     }
@@ -99,53 +114,35 @@ public:
     {
     }
 
-    StubBuffer(std::shared_ptr<graphics::NativeBuffer> const& native_buffer,
+    StubBuffer(std::shared_ptr<graphics::NativeBufferBase> const& native_buffer,
                graphics::BufferProperties const& properties,
                geometry::Stride stride)
         : native_buffer(native_buffer),
           buf_size{properties.size},
           buf_pixel_format{properties.format},
           buf_stride{stride},
-          buf_id{graphics::BufferBasic::id()}
+          buf_id{graphics::BufferID{1}}
     {
     }
 
+    // Buffer interface methods
     virtual graphics::BufferID id() const override { return buf_id; }
-
     virtual geometry::Size size() const override { return buf_size; }
+    virtual MirPixelFormat pixel_format() const override { return buf_pixel_format; }
+    virtual NativeBufferBase* native_buffer_base() override { return this; }
 
+    // WriteMappableBuffer interface methods
+    virtual std::unique_ptr<renderer::software::Mapping<unsigned char>> map_writeable() override
+    {
+        // Return a simple mapping that writes to our internal buffer
+        return std::make_unique<StubMapping>(written_pixels);
+    }
+
+    // BufferDescriptor interface methods (inherited from WriteMappableBuffer)
+    virtual MirPixelFormat format() const override { return buf_pixel_format; }
     virtual geometry::Stride stride() const override { return buf_stride; }
 
-    virtual MirPixelFormat pixel_format() const override { return buf_pixel_format; }
-
-    virtual std::shared_ptr<graphics::NativeBuffer> native_buffer_handle() const override
-    {
-        if (native_buffer)
-            return native_buffer;
-        BOOST_THROW_EXCEPTION(std::runtime_error("cannot access native buffer"));
-    }
-
-    void write(unsigned char const* pixels, size_t len) override
-    {
-        if (pixels) written_pixels.assign(pixels, pixels + len);
-    }
-    void read(std::function<void(unsigned char const*)> const& do_with_pixels) override
-    {
-        if (written_pixels.size() == 0)
-        {
-            auto length = buf_size.width.as_int()*buf_size.height.as_int()*MIR_BYTES_PER_PIXEL(buf_pixel_format);
-            written_pixels.resize(length);
-            memset(written_pixels.data(), 0, length);
-        }
-        do_with_pixels(written_pixels.data());
-    }
-
-    NativeBufferBase* native_buffer_base() override
-    {
-        return this;
-    }
-
-    std::shared_ptr<graphics::NativeBuffer> const native_buffer;
+    std::shared_ptr<graphics::NativeBufferBase> const native_buffer;
     geometry::Size const buf_size;
     MirPixelFormat const buf_pixel_format;
     geometry::Stride const buf_stride;

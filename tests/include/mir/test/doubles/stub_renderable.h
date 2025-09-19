@@ -24,6 +24,10 @@
 #include "mir/test/doubles/stub_buffer.h"
 #include <mir/graphics/renderable.h>
 #include <memory>
+#include <optional>
+
+// Forward declaration since mir/scene/surface.h is not available in system headers
+namespace mir { namespace scene { class Surface; } }
 #define GLM_FORCE_RADIANS
 #define GLM_PRECISION_MEDIUMP_FLOAT
 #include <glm/glm.hpp>
@@ -87,16 +91,25 @@ public:
     {
         return false;
     }
-    unsigned int swap_interval() const override
-    {
-        return 1;
-    }
+    // swap_interval() method removed in Mir 2.x
 #if MIR_SERVER_VERSION >= MIR_VERSION_NUMBER(1, 5, 0)
-    std::experimental::optional<geometry::Rectangle> clip_area() const override
+    std::optional<geometry::Rectangle> clip_area() const override
     {
-        return std::experimental::optional<geometry::Rectangle>();
+        return std::optional<geometry::Rectangle>();
     }
 #endif
+
+    // Mir 2.x requires surface_if_any() method
+    std::optional<const mir::scene::Surface*> surface_if_any() const override
+    {
+        return std::nullopt;
+    }
+
+    // Mir 2.x requires src_bounds() method
+    geometry::RectangleD src_bounds() const override
+    {
+        return geometry::RectangleD{};
+    }
 
 private:
     std::shared_ptr<graphics::Buffer> make_stub_buffer(geometry::Rectangle const& rect)
@@ -154,7 +167,7 @@ struct PlaneAlphaRenderable : public StubRenderable
 {
     float alpha() const override
     {
-        //approx 99% alpha 
+        //approx 99% alpha
         return 1.0f - ( 3.0f / 1024.0f );
     }
 };
@@ -168,10 +181,7 @@ struct IntervalZeroRenderable : StubRenderable
     {
     }
 
-    unsigned int swap_interval() const override
-    {
-        return 0;
-    }
+    // swap_interval() method removed in Mir 2.x
 };
 
 }

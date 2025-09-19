@@ -50,11 +50,11 @@ function(make_lib_descriptor name)
     cmake_policy(SET CMP0026 OLD)
   endif()
   get_property(LIB_DESC_LIBS TARGET ${libname} PROPERTY LOCATION)
-    
+
   get_includes(${libname} LIB_DESC_INCLUDE_PATHS)
   set(LIB_DESC_GCC_OPTS "${CMAKE_CXX_FLAGS}")
 
-  # Optional EXCLUDE_HEADERS - a list 
+  # Optional EXCLUDE_HEADERS - a list
   # while attempting an abi dump
   get_value_for_key("${ARGN}" "EXCLUDE_HEADERS" LIB_DESC_SKIP_HEADERS)
 
@@ -77,8 +77,8 @@ macro(_define_abi_dump_for libname)
   add_custom_target(abi-dump-${libname} DEPENDS ${ABI_DUMP_NAME})
 endmacro(_define_abi_dump_for)
 
-macro(_define_abi_check_for libname) 
-  add_custom_target(abi-check-${libname} 
+macro(_define_abi_check_for libname)
+  add_custom_target(abi-check-${libname}
     COMMAND /bin/bash -c '${CMAKE_SOURCE_DIR}/tools/abi_check.sh ${libname} ${ABI_DUMPS_DIR} ${CMAKE_SOURCE_DIR}'
     DEPENDS abi-dump-${libname}
   )

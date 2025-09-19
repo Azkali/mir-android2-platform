@@ -18,7 +18,7 @@
 
 #include "src/platforms/android/server/hwc_configuration.h"
 #include "mir/test/doubles/mock_hwc_device_wrapper.h"
-#include "mir/test/doubles/mock_egl.h"
+#include <mir/test/doubles/mock_egl.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <chrono>

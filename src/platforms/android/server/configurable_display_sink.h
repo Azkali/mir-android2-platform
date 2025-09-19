@@ -16,8 +16,8 @@
  * Authored by: Kevin DuBois <kevin.dubois@canonical.com>
  */
 
-#ifndef MIR_GRAPHICS_ANDROID_CONFIGURABLE_DISPLAY_BUFFER_H_
-#define MIR_GRAPHICS_ANDROID_CONFIGURABLE_DISPLAY_BUFFER_H_
+#ifndef MIR_GRAPHICS_ANDROID_CONFIGURABLE_DISPLAY_SINK_H_
+#define MIR_GRAPHICS_ANDROID_CONFIGURABLE_DISPLAY_SINK_H_
 
 #include "mir/graphics/display_sink.h"
 #include "display_device.h"
@@ -29,7 +29,7 @@ namespace graphics
 namespace android
 {
 
-class ConfigurableDisplayBuffer : public graphics::DisplaySink
+class ConfigurableDisplaySink : public graphics::DisplaySink
 {
 public:
     virtual void configure(MirPowerMode power_mode, glm::mat2 const& transform, geometry::Rectangle const&) = 0;
@@ -41,4 +41,4 @@ public:
 }
 }
 
-#endif /* MIR_GRAPHICS_ANDROID_CONFIGURABLE_DISPLAY_BUFFER_H_ */
+#endif /* MIR_GRAPHICS_ANDROID_CONFIGURABLE_DISPLAY_SINK_H_ */

@@ -40,7 +40,7 @@ void mga::AndroidNativeBuffer::ensure_available_for(BufferAccess intent)
 {
     if ((access == mga::BufferAccess::read) && (intent == mga::BufferAccess::read))
         return;
-  
+
     fence_->wait();
 }
 
@@ -94,16 +94,3 @@ void mga::AndroidNativeBuffer::wait_for_unlock_by_gpu()
     cmdstream_sync->wait_for(duration_cast<nanoseconds>(seconds(2)));
 }
 
-mga::NativeBuffer* mga::to_native_buffer_checked(mg::NativeBuffer* buffer)
-{
-    if (auto native = dynamic_cast<mga::NativeBuffer*>(buffer))
-        return native;
-    BOOST_THROW_EXCEPTION(std::invalid_argument("cannot downcast mg::NativeBuffer to android::NativeBuffer"));
-}
-
-std::shared_ptr<mga::NativeBuffer> mga::to_native_buffer_checked(std::shared_ptr<mg::NativeBuffer> const& buffer)
-{
-    if (auto native = std::dynamic_pointer_cast<mga::NativeBuffer>(buffer))
-        return native;
-    BOOST_THROW_EXCEPTION(std::invalid_argument("cannot downcast mg::NativeBuffer to android::NativeBuffer"));
-}

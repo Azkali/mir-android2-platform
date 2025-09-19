@@ -18,7 +18,7 @@
  */
 
 #include "egl_sync_extensions.h"
-#include "mir/test/doubles/mock_egl.h"
+#include <mir/test/doubles/mock_egl.h>
 #include <stdexcept>
 
 #include <gtest/gtest.h>

@@ -1,9 +1,10 @@
 
-#ifndef MIR_TEST_FRAMEWORK_STUB_PLATFORM_NATIVE_BUFFER_H_
-#define MIR_TEST_FRAMEWORK_STUB_PLATFORM_NATIVE_BUFFER_H_
+// NativeBuffer replaced with NativeBufferBase in Mir 2.x - this entire file is disabled
+// #ifndef MIR_TEST_FRAMEWORK_STUB_PLATFORM_NATIVE_BUFFER_H_
+// #define MIR_TEST_FRAMEWORK_STUB_PLATFORM_NATIVE_BUFFER_H_
 
 #include <mir/graphics/buffer_properties.h>
-#include <mir/graphics/native_buffer.h>
+// #include <mir/graphics/native_buffer.h> // Removed in Mir 2.x - replaced with NativeBufferBase
 #include <mir/fd.h>
 
 #include <sys/types.h>
@@ -17,9 +18,10 @@
 namespace mir_test_framework
 {
 //just a simple FD and int, helps to check for leaks/memory issues.
-struct NativeBuffer : mir::graphics::NativeBuffer
+// NativeBuffer replaced with NativeBufferBase in Mir 2.x - disable this stub
+// struct NativeBuffer : mir::graphics::NativeBuffer
 {
-    NativeBuffer(mir::graphics::BufferProperties const& properties) : 
+    NativeBuffer(mir::graphics::BufferProperties const& properties) :
         properties(properties)
     {
         if (fd < 0)

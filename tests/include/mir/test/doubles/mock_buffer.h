@@ -35,7 +35,7 @@ namespace doubles
 {
 
 struct MockBuffer : public graphics::Buffer, public graphics::NativeBufferBase,
-    public renderer::software::PixelSource
+    public renderer::software::WriteMappableBuffer
 {
  public:
     MockBuffer()
@@ -60,19 +60,21 @@ struct MockBuffer : public graphics::Buffer, public graphics::NativeBufferBase,
 
         ON_CALL(*this, id())
                 .WillByDefault(Return(graphics::BufferID{4}));
-        ON_CALL(*this, native_buffer_handle())
-                .WillByDefault(Return(std::shared_ptr<graphics::NativeBuffer>()));
+        // native_buffer_handle() removed in Mir 2.x
     }
 
     MOCK_CONST_METHOD0(size, geometry::Size());
     MOCK_CONST_METHOD0(stride, geometry::Stride());
     MOCK_CONST_METHOD0(pixel_format, MirPixelFormat());
-    MOCK_CONST_METHOD0(native_buffer_handle, std::shared_ptr<graphics::NativeBuffer>());
+    // native_buffer_handle() removed in Mir 2.x - use native_buffer_base() instead
 
     MOCK_CONST_METHOD0(id, graphics::BufferID());
 
-    MOCK_METHOD2(write, void(unsigned char const*, size_t));
-    MOCK_METHOD1(read, void(std::function<void(unsigned char const*)> const&));
+    // WriteMappableBuffer interface methods
+    MOCK_METHOD0(map_writeable, std::unique_ptr<renderer::software::Mapping<unsigned char>>());
+
+    // BufferDescriptor interface methods
+    MOCK_CONST_METHOD0(format, MirPixelFormat());
     MOCK_METHOD0(native_buffer_base, graphics::NativeBufferBase*());
     MOCK_METHOD0(used_as_texture, void());
 };

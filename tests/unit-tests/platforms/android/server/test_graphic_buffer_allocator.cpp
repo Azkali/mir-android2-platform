@@ -19,13 +19,14 @@
 #include "src/platforms/android/server/graphic_buffer_allocator.h"
 #include "src/platforms/android/server/device_quirks.h"
 #include "src/platforms/android/server/cmdstream_sync_factory.h"
+#include "src/platforms/android/include/android_format_conversion-inl.h"
 #include "mir/graphics/buffer_properties.h"
 #include "mir/graphics/buffer.h"
 #include "native_buffer.h"
 
 #include "mir/test/doubles/stub_display_builder.h"
 #include "mir/test/doubles/stub_cmdstream_sync_factory.h"
-#include "mir/test/doubles/mock_egl.h"
+#include <mir/test/doubles/mock_egl.h>
 #include "mir/test/doubles/mock_hybris_gralloc.h"
 #include "mir/test/doubles/mock_option.h"
 
@@ -113,7 +114,7 @@ TEST_F(GraphicBufferAllocator, adaptor_gralloc_usage_conversion_fb_gles_with_qui
         std::make_shared<mtd::StubCmdStreamSyncFactory>(),
         quirks};
     auto buffer = allocator.alloc_framebuffer({1,1}, mir_pixel_format_abgr_8888);
-    auto native = reinterpret_cast<mga::NativeBuffer*>(buffer->native_buffer_handle().get());
+    auto native = reinterpret_cast<mga::NativeBuffer*>(buffer->native_buffer_base());
     ASSERT_THAT(native, NotNull());
     EXPECT_THAT(native->anwb()->usage, Eq(fb_usage_flags_broken_device));
 }
@@ -126,7 +127,7 @@ TEST_F(GraphicBufferAllocator, adaptor_gralloc_usage_conversion_fb_gles_without_
         std::make_shared<mtd::StubCmdStreamSyncFactory>(),
         quirks};
     auto buffer = allocator.alloc_framebuffer({1,1}, mir_pixel_format_abgr_8888);
-    auto native = reinterpret_cast<mga::NativeBuffer*>(buffer->native_buffer_handle().get());
+    auto native = reinterpret_cast<mga::NativeBuffer*>(buffer->native_buffer_base());
     ASSERT_THAT(native, NotNull());
     EXPECT_THAT(native->anwb()->usage, Eq(fb_usage_flags));
 }
@@ -139,12 +140,12 @@ TEST_F(GraphicBufferAllocator, adaptor_gralloc_usage_conversion_software)
         std::make_shared<mtd::StubCmdStreamSyncFactory>(),
         quirks};
     auto buffer = allocator.alloc_software_buffer({1,1}, mir_pixel_format_abgr_8888);
-    auto native = reinterpret_cast<mga::NativeBuffer*>(buffer->native_buffer_handle().get());
+    auto native = reinterpret_cast<mga::NativeBuffer*>(buffer->native_buffer_base());
     ASSERT_THAT(native, NotNull());
     EXPECT_THAT(native->anwb()->usage, Eq(sw_usage_flags));
 }
 
-TEST_F(GraphicBufferAllocator, allocates_native_format_and_native_bits) 
+TEST_F(GraphicBufferAllocator, allocates_native_format_and_native_bits)
 {
     auto pf = HAL_PIXEL_FORMAT_RGBA_8888;
     auto usage = GRALLOC_USAGE_RENDERSCRIPT;
@@ -153,8 +154,8 @@ TEST_F(GraphicBufferAllocator, allocates_native_format_and_native_bits)
         std::make_shared<mtd::MockHybrisGralloc>(),
         std::make_shared<mtd::StubCmdStreamSyncFactory>(),
         quirks};
-    auto buffer = allocator.alloc_buffer({1,1}, pf, usage);
-    auto native = reinterpret_cast<mga::NativeBuffer*>(buffer->native_buffer_handle().get());
+    auto buffer = allocator.alloc_framebuffer({1,1}, mir::graphics::android::to_mir_format(pf));
+    auto native = reinterpret_cast<mga::NativeBuffer*>(buffer->native_buffer_base());
     ASSERT_THAT(native, NotNull());
     EXPECT_THAT(native->anwb()->usage, Eq(usage));
     EXPECT_THAT(native->anwb()->format, Eq(pf));
@@ -167,9 +168,8 @@ TEST_F(GraphicBufferAllocator, adaptor_gralloc_usage_conversion_legacy_software)
         std::make_shared<mtd::MockHybrisGralloc>(),
         std::make_shared<mtd::StubCmdStreamSyncFactory>(),
         quirks};
-    auto buffer = allocator.alloc_buffer(
-        mg::BufferProperties{{1,1}, mir_pixel_format_abgr_8888, mg::BufferUsage::software});
-    auto native = reinterpret_cast<mga::NativeBuffer*>(buffer->native_buffer_handle().get());
+    auto buffer = allocator.alloc_framebuffer({1,1}, mir_pixel_format_abgr_8888);
+    auto native = reinterpret_cast<mga::NativeBuffer*>(buffer->native_buffer_base());
     ASSERT_THAT(native, NotNull());
     EXPECT_THAT(native->anwb()->usage, Eq(sw_usage_flags | video_encoder_flags));
     EXPECT_THAT(native->anwb()->format, Eq(HAL_PIXEL_FORMAT_RGBA_8888));
@@ -182,9 +182,8 @@ TEST_F(GraphicBufferAllocator, adaptor_gralloc_usage_conversion_legacy_hardware)
         std::make_shared<mtd::MockHybrisGralloc>(),
         std::make_shared<mtd::StubCmdStreamSyncFactory>(),
         quirks};
-    auto buffer = allocator.alloc_buffer(
-        mg::BufferProperties{{1,1}, mir_pixel_format_abgr_8888, mg::BufferUsage::hardware});
-    auto native = reinterpret_cast<mga::NativeBuffer*>(buffer->native_buffer_handle().get());
+    auto buffer = allocator.alloc_framebuffer({1,1}, mir_pixel_format_abgr_8888);
+    auto native = reinterpret_cast<mga::NativeBuffer*>(buffer->native_buffer_base());
     ASSERT_THAT(native, NotNull());
     EXPECT_THAT(native->anwb()->usage, Eq(hw_usage_flags | video_encoder_flags));
     EXPECT_THAT(native->anwb()->format, Eq(HAL_PIXEL_FORMAT_RGBA_8888));

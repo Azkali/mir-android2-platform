@@ -52,6 +52,7 @@ target_link_libraries(
   mirplatformgraphicsandroid
 
   mirsharedandroid-static
+  server_platform_common
   ${MIRPLATFORM_LDFLAGS}
   ${MIRCORE_LDFLAGS}
   ${Boost_PROGRAM_OPTIONS_LIBRARY}

@@ -21,7 +21,7 @@
 #include "src/platforms/android/server/cmdstream_sync_factory.h"
 #include "src/platforms/android/server/device_quirks.h"
 #include "mir/test/doubles/mock_buffer.h"
-#include "mir/test/doubles/mock_egl.h"
+#include <mir/test/doubles/mock_egl.h>
 #include "mir/test/doubles/mock_hybris_gralloc.h"
 
 #include <future>

@@ -17,7 +17,7 @@
  * Kevin DuBois <kevin.dubois@canonical.com>
  */
 
-#include "mir/test/doubles/mock_gl.h"
+#include <mir/test/doubles/mock_gl.h>
 #include <gtest/gtest.h>
 
 #include <GLES2/gl2.h>

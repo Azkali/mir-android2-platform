@@ -29,6 +29,7 @@
 #include <algorithm>
 #include <chrono>
 #include <thread>
+#include <iostream>
 
 namespace mg = mir::graphics;
 namespace mga=mir::graphics::android;
@@ -96,18 +97,19 @@ mga::HwcDevice::HwcDevice(std::shared_ptr<HwcWrapper> const& hwc_wrapper) :
 bool mga::HwcDevice::buffer_is_onscreen(mg::Buffer const& buffer) const
 {
     /* check the handles, as the buffer ptrs might change between sets */
-    auto const handle = buffer.native_buffer_handle().get();
+    auto const handle = buffer.native_buffer_base();
     auto it = std::find_if(
         onscreen_overlay_buffers.begin(), onscreen_overlay_buffers.end(),
-        [&handle](std::shared_ptr<mg::Buffer> const& b)
+        [handle](std::shared_ptr<mg::Buffer> const& b)
         {
-            return (handle == b->native_buffer_handle().get());
+            return (handle == b->native_buffer_base());
         });
     return it != onscreen_overlay_buffers.end();
 }
 
 void mga::HwcDevice::commit(std::list<DisplayContents> const& contents)
 {
+
     std::vector<std::shared_ptr<mg::Buffer>> next_onscreen_overlay_buffers;
 
     hwc_wrapper->prepare(contents);
@@ -119,6 +121,7 @@ void mga::HwcDevice::commit(std::list<DisplayContents> const& contents)
         if (content.list.needs_swapbuffers())
         {
             auto rejected_renderables = content.list.rejected_renderables();
+
             if (!rejected_renderables.empty())
             {
                 auto current_context = mir::raii::paired_calls(
@@ -130,11 +133,12 @@ void mga::HwcDevice::commit(std::list<DisplayContents> const& contents)
             content.list.swap_occurred();
             purely_overlays = false;
         }
-    
+
         //setup overlays
         for (auto& layer : content.list)
         {
             auto buffer = layer.layer.buffer();
+
             if (layer.layer.is_overlay() && buffer)
             {
                 if (!buffer_is_onscreen(*buffer))
@@ -145,6 +149,7 @@ void mga::HwcDevice::commit(std::list<DisplayContents> const& contents)
     }
 
     hwc_wrapper->set(contents);
+
     onscreen_overlay_buffers = std::move(next_onscreen_overlay_buffers);
 
     for (auto& content : contents)

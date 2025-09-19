@@ -27,8 +27,8 @@
 #include "mir/test/doubles/stub_gl_config.h"
 #include "mir/test/doubles/stub_display_report.h"
 #include "mir/test/doubles/stub_display_configuration.h"
-#include "mir/test/doubles/mock_egl.h"
-#include "mir/test/doubles/mock_gl.h"
+#include <mir/test/doubles/mock_egl.h>
+#include <mir/test/doubles/mock_gl.h>
 #include "mir/test/auto_unblock_thread.h"
 #include "native_window_report.h"
 #include <gtest/gtest.h>
@@ -47,7 +47,7 @@ struct DisplayHotplug : ::testing::Test
         mg::DisplayConfigurationOutput active_config_for(mga::DisplayName) override
         {
             return mtd::StubDisplayConfig({{true,true}}).outputs[0];
-        } 
+        }
         mga::ConfigChangeSubscription subscribe_to_config_changes(
             std::function<void()> const& cb, std::function<void(mga::DisplayName, mg::Frame::Timestamp)> const&) override
         {
@@ -72,7 +72,7 @@ struct DisplayHotplug : ::testing::Test
         mg::DisplayConfigurationOutput active_config_for(mga::DisplayName d) override
         {
             return wrapped.active_config_for(d);
-        } 
+        }
         mga::ConfigChangeSubscription subscribe_to_config_changes(
             std::function<void()> const& hotplug, std::function<void(mga::DisplayName, mg::Frame::Timestamp)> const& vsync) override
         {

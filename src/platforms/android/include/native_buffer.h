@@ -19,7 +19,8 @@
 #ifndef MIR_GRAPHICS_ANDROID_NATIVE_BUFFER_H_
 #define MIR_GRAPHICS_ANDROID_NATIVE_BUFFER_H_
 
-#include "mir/graphics/native_buffer.h"
+// #include "mir/graphics/native_buffer.h"  // Removed - not available in Mir 2.x
+#include "mir/graphics/buffer.h"  // For NativeBufferBase in Mir 2.x
 #include "fence.h"
 #include <system/window.h>
 #include <memory>
@@ -37,7 +38,7 @@ enum class BufferAccess
     write
 };
 
-class NativeBuffer : public graphics::NativeBuffer
+class NativeBuffer : public graphics::NativeBufferBase
 {
 public:
     virtual ~NativeBuffer() = default;
@@ -60,11 +61,6 @@ protected:
     NativeBuffer(NativeBuffer const&) = delete;
     NativeBuffer& operator=(NativeBuffer const&) = delete;
 };
-
-android::NativeBuffer* to_native_buffer_checked(graphics::NativeBuffer* buffer);
-std::shared_ptr<android::NativeBuffer> to_native_buffer_checked(
-    std::shared_ptr<graphics::NativeBuffer> const& buffer);
-
 
 }
 }

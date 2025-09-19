@@ -51,7 +51,7 @@ class HWCFallbackGLRenderer : public RenderableListCompositor
 {
 public:
     HWCFallbackGLRenderer(
-        gl::ProgramFactory const& program_factory,
+        mir::gl::ProgramFactory const& program_factory,
         renderer::gl::Context const& gl_context,
         geometry::Rectangle const& screen_position);
 

@@ -52,10 +52,10 @@ void mir::test::fill_hwc_layer(
     hwc_layer_1_t& layer,
     hwc_rect_t* visible_rect,
     mir::geometry::Rectangle const& position,
-    mir::graphics::Buffer const& buffer,
+    mir::graphics::Buffer& buffer,
     int type, int flags)
 {
-    auto native = mir::graphics::android::to_native_buffer_checked(buffer.native_buffer_handle());
+    auto native = dynamic_cast<mir::graphics::android::Buffer>(&buffer)->native_buffer_handle();
     *visible_rect = {0, 0, buffer.size().width.as_int(), buffer.size().height.as_int()};
     layer.compositionType = type;
     layer.hints = 0;

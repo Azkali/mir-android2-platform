@@ -21,7 +21,6 @@
 
 #include "cmdstream_sync_factory.h"
 #include "display_component_factory.h"
-#include "display_resource_factory.h"
 
 namespace mir
 {
@@ -31,7 +30,6 @@ class DisplayReport;
 namespace android
 {
 class FramebufferBundle;
-class DisplayResourceFactory;
 class DisplayDevice;
 class HwcWrapper;
 class HwcReport;
@@ -46,7 +44,6 @@ class HalComponentFactory : public DisplayComponentFactory, public CommandStream
 {
 public:
     HalComponentFactory(
-        std::shared_ptr<DisplayResourceFactory> const& res_factory,
         std::shared_ptr<HwcReport> const& hwc_report,
         std::shared_ptr<DeviceQuirks> const& quirks);
 
@@ -61,17 +58,12 @@ private:
     std::unique_ptr<CommandStreamSyncFactory> create_command_stream_sync_factory();
     void start_fake_surfaceflinger();
 
-    std::shared_ptr<DisplayResourceFactory> const res_factory;
     std::shared_ptr<HwcReport> const hwc_report;
 
-    std::shared_ptr<FramebufferBundle> framebuffers;
-    bool force_backup_display;
     size_t num_framebuffers;
     bool working_egl_sync;
 
     std::shared_ptr<HwcWrapper> hwc_wrapper;
-    std::shared_ptr<framebuffer_device_t> fb_native;
-    HwcVersion hwc_version;
 
     std::shared_ptr<GraphicBufferAllocator> buffer_allocator;
     std::shared_ptr<CommandStreamSyncFactory> command_stream_sync_factory;

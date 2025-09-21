@@ -22,7 +22,6 @@
 #include "graphic_buffer_allocator.h"
 #include "hybris_gralloc_impl.h"
 #include "mir/graphics/platform.h"
-#include "resource_factory.h"
 #include "display.h"
 #include "hal_component_factory.h"
 #include "hwc_loggers.h"
@@ -303,10 +302,8 @@ mir::UniqueModulePtr<mir::graphics::DisplayPlatform> create_display_platform(
     auto hwc_report = make_hwc_report(*options);
     auto overlay_option = should_use_overlay_optimization(*options);
     hwc_report->report_overlay_optimization(overlay_option);
-    auto display_resource_factory = std::make_shared<mga::ResourceFactory>();
-
     auto component_factory = std::make_shared<mga::HalComponentFactory>(
-        display_resource_factory, hwc_report, quirks);
+        hwc_report, quirks);
 
     return mir::make_module_ptr<mga::HwcPlatform>(
         component_factory->the_buffer_allocator(),

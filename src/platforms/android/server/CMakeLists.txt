@@ -13,24 +13,18 @@ add_library(mirplatformgraphicsandroidobjects OBJECT
   hal_component_factory.cpp
   hwc_layerlist.cpp
   hwc_layers.cpp
-  hwc_fb_device.cpp
   hwc_loggers.cpp
   hwc_device.cpp
   gralloc_module.cpp
   server_render_window.cpp
-  resource_factory.cpp
   framebuffers.cpp
-  fb_device.cpp
   interpreter_cache.cpp
   gl_context.cpp
   device_quirks.cpp
-  real_hwc_wrapper.cpp
   real_hwc2_wrapper.cpp
   hwc_fallback_gl_renderer.cpp
-  ipc_operations.cpp
   hwc_blanking_control.cpp
   egl_sync_factory.cpp
-  virtual_output.cpp
 )
 
 target_include_directories(mirplatformgraphicsandroidobjects PUBLIC

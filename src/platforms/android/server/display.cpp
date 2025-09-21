@@ -24,7 +24,6 @@
 #include "mir/graphics/egl_resources.h"
 #include "mir/graphics/transformation.h"
 #include "display.h"
-#include "virtual_output.h"
 #include "display_component_factory.h"
 #include "interpreter_cache.h"
 #include "server_render_window.h"

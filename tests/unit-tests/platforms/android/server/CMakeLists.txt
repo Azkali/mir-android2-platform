@@ -15,9 +15,7 @@ list(APPEND ANDROID_UNIT_TEST_SOURCES
 # ${CMAKE_CURRENT_SOURCE_DIR}/test_hwc_fb_device.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_display_buffer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_ipc_operations.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/test_resource_factory.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_framebuffers.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/test_fb_device.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_hwc_layers.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_hwc_layerlist.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test_hwc_logger.cpp

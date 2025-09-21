@@ -166,21 +166,6 @@ std::ostream& operator<<(std::ostream& str, mga::OverlayOptimization opt)
         return str << "OFF";
 }
 
-std::ostream& operator<<(std::ostream& str, mga::HwcVersion version)
-{
-    switch (version)
-    {
-        case mga::HwcVersion::hwc10: str << "1.0"; break;
-        case mga::HwcVersion::hwc11: str << "1.1"; break;
-        case mga::HwcVersion::hwc12: str << "1.2"; break;
-        case mga::HwcVersion::hwc13: str << "1.3"; break;
-        case mga::HwcVersion::hwc14: str << "1.4"; break;
-        case mga::HwcVersion::hwc15: str << "1.5"; break;
-        case mga::HwcVersion::hwc20: str << "2.0"; break;
-        default: break;
-    }
-    return str;
-}
 
 std::ostream& operator<<(std::ostream& str, mga::PowerMode power_mode)
 {
@@ -216,7 +201,8 @@ void mga::HwcFormattedLogger::report_list_submitted_to_prepare(
                       << HwcRect{displays[i]->hwLayers[j].displayFrame}
                       << separator;
 
-            if (hwc_version < HwcVersion::hwc13)
+            // Always HWC2, so this condition is always false
+            if (false)
                 std::cout << HwcRect{displays[i]->hwLayers[j].sourceCrop};
             else
                 std::cout << HwcFloatRect{displays[i]->hwLayers[j].sourceCropf};
@@ -316,9 +302,9 @@ void mga::HwcFormattedLogger::report_vsync_off() const
     std::cout << "HWC: vsync signal off" << std::endl;
 }
 
-void mga::HwcFormattedLogger::report_hwc_version(mga::HwcVersion version) const
+void mga::HwcFormattedLogger::report_hwc_version() const
 {
-    std::cout << "HWC version " << version << std::endl;
+    std::cout << "HWC version 2.0" << std::endl;
 }
 
 void mga::HwcFormattedLogger::report_legacy_fb_module() const
@@ -344,6 +330,6 @@ void mga::NullHwcReport::report_display_on() const {}
 void mga::NullHwcReport::report_display_off() const {}
 void mga::NullHwcReport::report_vsync_on() const {}
 void mga::NullHwcReport::report_vsync_off() const {}
-void mga::NullHwcReport::report_hwc_version(mga::HwcVersion) const {}
+void mga::NullHwcReport::report_hwc_version() const {}
 void mga::NullHwcReport::report_legacy_fb_module() const {}
 void mga::NullHwcReport::report_power_mode(PowerMode) const {}

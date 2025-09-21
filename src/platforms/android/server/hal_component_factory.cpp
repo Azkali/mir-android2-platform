@@ -16,20 +16,17 @@
  * Authored by: Alexandros Frantzis <alexandros.frantzis@canonical.com>
  */
 
-#include "fb_device.h"
 #include "device_quirks.h"
 #include "hal_component_factory.h"
-#include "display_resource_factory.h"
+#include "real_hwc2_wrapper.h"
 #include "display_buffer.h"
 #include "display_device.h"
 #include "framebuffers.h"
 #include "hybris_gralloc_impl.h"
-#include "real_hwc_wrapper.h"
 #include "hwc_report.h"
 #include "hwc_configuration.h"
 #include "hwc_layers.h"
 #include "hwc_device.h"
-#include "hwc_fb_device.h"
 #include "graphic_buffer_allocator.h"
 #include "cmdstream_sync_factory.h"
 #include "android_format_conversion-inl.h"
@@ -46,31 +43,15 @@ namespace mga = mir::graphics::android;
 namespace geom = mir::geometry;
 
 mga::HalComponentFactory::HalComponentFactory(
-    std::shared_ptr<mga::DisplayResourceFactory> const& res_factory,
     std::shared_ptr<HwcReport> const& hwc_report,
     std::shared_ptr<mga::DeviceQuirks> const& quirks)
-    : res_factory(res_factory),
-      hwc_report(hwc_report),
-      force_backup_display(false),
+    : hwc_report(hwc_report),
       num_framebuffers{quirks->num_framebuffers()},
-      working_egl_sync(quirks->working_egl_sync()),
-      hwc_version{mga::HwcVersion::unknown}
+      working_egl_sync(quirks->working_egl_sync())
 {
-    try
-    {
-        std::tie(hwc_wrapper, hwc_version) = res_factory->create_hwc_wrapper(hwc_report);
-        hwc_report->set_version(hwc_version);
-    } catch (...)
-    {
-        force_backup_display = true;
-    }
-
-    if (force_backup_display || hwc_version == mga::HwcVersion::hwc10)
-    {
-        fb_native = res_factory->create_fb_native_device();
-        //guarantee always 2 fb's allocated
-        num_framebuffers = std::max(2u, static_cast<unsigned int>(fb_native->numFramebuffers));
-    }
+    // Always use HWC2
+    hwc_wrapper = std::make_shared<mga::RealHwc2Wrapper>(hwc_report);
+    hwc_report->set_version();
 
     start_fake_surfaceflinger();
     auto hybris_gralloc = std::make_shared<mga::HybrisGrallocImpl>();
@@ -86,7 +67,7 @@ std::unique_ptr<mg::CommandStreamSync> mga::HalComponentFactory::create_command_
 
 std::unique_ptr<mga::CommandStreamSyncFactory> mga::HalComponentFactory::create_command_stream_sync_factory()
 {
-    if ((hwc_version == mga::HwcVersion::hwc10) || !working_egl_sync)
+    if (!working_egl_sync)
         return std::make_unique<mga::NullCommandStreamSyncFactory>();
 
     try
@@ -111,77 +92,23 @@ std::unique_ptr<mga::FramebufferBundle> mga::HalComponentFactory::create_framebu
 std::unique_ptr<mga::LayerList> mga::HalComponentFactory::create_layer_list()
 {
     geom::Displacement offset{0,0};
-    if (force_backup_display)
-        return std::unique_ptr<mga::LayerList>(
-            new mga::LayerList(std::make_shared<mga::Hwc10Adapter>(), {}, offset));
-    switch (hwc_version)
-    {
-        case mga::HwcVersion::hwc10:
-            return std::unique_ptr<mga::LayerList>(
-                new mga::LayerList(std::make_shared<mga::Hwc10Adapter>(), {}, offset));
-        case mga::HwcVersion::hwc11:
-        case mga::HwcVersion::hwc12:
-            return std::unique_ptr<mga::LayerList>(
-                new mga::LayerList(std::make_shared<mga::IntegerSourceCrop>(), {}, offset));
-        case mga::HwcVersion::hwc13:
-        case mga::HwcVersion::hwc14:
-        case mga::HwcVersion::hwc15:
-            return std::unique_ptr<mga::LayerList>(
-                new mga::LayerList(std::make_shared<mga::FloatSourceCrop>(), {}, offset));
-        case mga::HwcVersion::hwc20:
-            return std::unique_ptr<mga::LayerList>(
-                new mga::LayerList(std::make_shared<mga::FloatSourceCrop>(), {}, offset));
-        case mga::HwcVersion::unknown:
-        default:
-            BOOST_THROW_EXCEPTION(std::runtime_error("unknown or unsupported hwc version"));
-    }
+    // HWC2 uses FloatSourceCrop
+    return std::unique_ptr<mga::LayerList>(
+        new mga::LayerList(std::make_shared<mga::FloatSourceCrop>(), {}, offset));
 }
 
 std::unique_ptr<mga::DisplayDevice> mga::HalComponentFactory::create_display_device()
 {
-    if (force_backup_display)
-    {
-        hwc_report->report_legacy_fb_module();
-        return std::unique_ptr<mga::DisplayDevice>{new mga::FBDevice(fb_native)};
-    }
-    else
-    {
-        hwc_report->report_hwc_version(hwc_version);
-        switch (hwc_version)
-        {
-            case mga::HwcVersion::hwc10:
-                return std::unique_ptr<mga::DisplayDevice>{
-                    new mga::HwcFbDevice(hwc_wrapper, fb_native)};
+    hwc_report->report_hwc_version();
 
-            case mga::HwcVersion::hwc11:
-            case mga::HwcVersion::hwc12:
-            case mga::HwcVersion::hwc13:
-            case mga::HwcVersion::hwc14:
-            case mga::HwcVersion::hwc15:
-                return std::unique_ptr<mga::DisplayDevice>(
-                    new mga::HwcDevice(hwc_wrapper));
-
-            case mga::HwcVersion::hwc20:
-                return std::unique_ptr<mga::DisplayDevice>(
-                    new mga::HwcDevice20(hwc_wrapper));
-
-            case mga::HwcVersion::unknown:
-            default:
-                BOOST_THROW_EXCEPTION(std::runtime_error("unknown or unsupported hwc version"));
-        }
-    }
+    return std::unique_ptr<mga::DisplayDevice>(
+        new mga::HwcDevice20(hwc_wrapper));
 }
 
 std::unique_ptr<mga::HwcConfiguration> mga::HalComponentFactory::create_hwc_configuration()
 {
-    if (force_backup_display)
-        return std::unique_ptr<mga::HwcConfiguration>(new mga::FbControl(fb_native));
-    else if (hwc_version == mga::HwcVersion::hwc10)
-        return std::unique_ptr<mga::HwcConfiguration>(new mga::HwcBlankingControl(hwc_wrapper, mga::to_mir_format(fb_native->format)));
-    else if (hwc_version < mga::HwcVersion::hwc14)
-        return std::unique_ptr<mga::HwcConfiguration>(new mga::HwcBlankingControl(hwc_wrapper));
-    else
-        return std::unique_ptr<mga::HwcConfiguration>(new mga::HwcPowerModeControl(hwc_wrapper));
+    // HWC2 uses HwcPowerModeControl
+    return std::unique_ptr<mga::HwcConfiguration>(new mga::HwcPowerModeControl(hwc_wrapper));
 }
 
 std::shared_ptr<mg::GraphicBufferAllocator> mga::HalComponentFactory::the_buffer_allocator()

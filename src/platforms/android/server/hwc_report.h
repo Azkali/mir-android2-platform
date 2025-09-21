@@ -20,9 +20,9 @@
 #define MIR_GRAPHICS_ANDROID_HWC_REPORT_H_
 
 #include "overlay_optimization.h"
-#include "display_resource_factory.h"
 #include "power_mode.h"
 #include <hardware/hwcomposer.h>
+#include <array>
 
 namespace mir
 {
@@ -48,17 +48,17 @@ public:
     virtual void report_display_off() const = 0;
     virtual void report_vsync_on() const = 0;
     virtual void report_vsync_off() const = 0;
-    virtual void report_hwc_version(HwcVersion) const = 0;
+    virtual void report_hwc_version() const = 0;
     virtual void report_legacy_fb_module() const = 0;
     virtual void report_power_mode(PowerMode mode) const = 0;
 
-    void set_version(HwcVersion version) { hwc_version = version; }
+    void set_version() { /* Always HWC2 */ }
 
 protected:
     HwcReport() = default;
     HwcReport& operator=(HwcReport const&) = delete;
     HwcReport(HwcReport const&) = delete;
-    HwcVersion hwc_version{unknown};
+    // Always HWC2
 };
 }
 }

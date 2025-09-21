@@ -19,7 +19,8 @@
 #include "src/platforms/android/server/gralloc_module.h"
 #include "src/platforms/android/server/device_quirks.h"
 #include "src/platforms/android/server/cmdstream_sync_factory.h"
-#include "native_buffer.h"
+#include "gralloc_buffer.h"
+#include "mir/graphics/egl_extensions.h"
 
 #include <mir/test/doubles/mock_egl.h>
 #include "mir/test/doubles/mock_hybris_gralloc.h"
@@ -39,7 +40,7 @@ struct Gralloc : Test
     Gralloc():
         mock_hybris_gralloc(std::make_shared<NiceMock<mtd::MockHybrisGralloc>>()),
         gralloc(std::make_shared<mga::GrallocModule>(
-            mock_hybris_gralloc, sync_factory, std::make_shared<mga::DeviceQuirks>(mga::PropertiesOps{}))),
+            mock_hybris_gralloc, sync_factory, std::make_shared<mga::DeviceQuirks>(mga::PropertiesOps{}), egl_extensions)),
         pf(mir_pixel_format_abgr_8888),
         size{300, 200}
     {
@@ -48,6 +49,7 @@ struct Gralloc : Test
     testing::NiceMock<mtd::MockEGL> mock_egl;
     std::shared_ptr<mga::CommandStreamSyncFactory> sync_factory{std::make_shared<mga::EGLSyncFactory>()};
     std::shared_ptr<mtd::MockHybrisGralloc> mock_hybris_gralloc;
+    std::shared_ptr<mg::EGLExtensions> egl_extensions{std::make_shared<mg::EGLExtensions>()};
     std::shared_ptr<mga::GrallocModule> gralloc;
 
     MirPixelFormat pf;

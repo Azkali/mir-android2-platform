@@ -20,6 +20,7 @@
 #include "android_driver_interpreter.h"
 #include "sync_fence.h"
 #include "native_window_report.h"
+#include "gralloc_buffer.h"
 
 #define MIR_LOG_COMPONENT "AndroidWindow"
 #include "mir/uncaught.h"

@@ -34,41 +34,41 @@ struct HwcLogger : public ::testing::Test
         display_list->numHwLayers = num_layers;
 
         display_list->hwLayers[0].compositionType = HWC_OVERLAY;
-        display_list->hwLayers[0].flags = 0; 
-        display_list->hwLayers[0].handle = native_handle1.get(); 
+        display_list->hwLayers[0].flags = 0;
+        display_list->hwLayers[0].handle = native_handle1.get();
         display_list->hwLayers[0].transform = HWC_TRANSFORM_ROT_90;
         display_list->hwLayers[0].blending = HWC_BLENDING_NONE;
-        display_list->hwLayers[0].displayFrame = {1, 1, 2, 1}; 
-        display_list->hwLayers[0].sourceCrop = {3, 2, 5, 3}; 
+        display_list->hwLayers[0].displayFrame = {1, 1, 2, 1};
+        display_list->hwLayers[0].sourceCrop = {3, 2, 5, 3};
         display_list->hwLayers[0].acquireFenceFd = fake_fence[0];
         display_list->hwLayers[0].releaseFenceFd = fake_fence[1];
 
-        display_list->hwLayers[1].compositionType = HWC_FRAMEBUFFER; 
+        display_list->hwLayers[1].compositionType = HWC_FRAMEBUFFER;
         display_list->hwLayers[1].flags = 0;
         display_list->hwLayers[1].handle = native_handle2.get();
         display_list->hwLayers[1].transform = HWC_TRANSFORM_ROT_180;
         display_list->hwLayers[1].blending = HWC_BLENDING_PREMULT;
-        display_list->hwLayers[1].displayFrame = {8, 5, 13, 8}; 
-        display_list->hwLayers[1].sourceCrop = {21, 13, 34, 21}; 
+        display_list->hwLayers[1].displayFrame = {8, 5, 13, 8};
+        display_list->hwLayers[1].sourceCrop = {21, 13, 34, 21};
         display_list->hwLayers[1].acquireFenceFd = fake_fence[2];
         display_list->hwLayers[1].releaseFenceFd = fake_fence[3];
 
-        display_list->hwLayers[2].compositionType = HWC_FRAMEBUFFER; 
+        display_list->hwLayers[2].compositionType = HWC_FRAMEBUFFER;
         display_list->hwLayers[2].flags = HWC_SKIP_LAYER;
-        display_list->hwLayers[2].handle = native_handle3.get(); 
+        display_list->hwLayers[2].handle = native_handle3.get();
         display_list->hwLayers[2].transform = HWC_TRANSFORM_ROT_270;
-        display_list->hwLayers[2].blending = HWC_BLENDING_COVERAGE; 
-        display_list->hwLayers[2].displayFrame = {55, 34, 89, 55};  
-        display_list->hwLayers[2].sourceCrop = {144, 89, 233, 144}; 
+        display_list->hwLayers[2].blending = HWC_BLENDING_COVERAGE;
+        display_list->hwLayers[2].displayFrame = {55, 34, 89, 55};
+        display_list->hwLayers[2].sourceCrop = {144, 89, 233, 144};
         display_list->hwLayers[2].acquireFenceFd = fake_fence[4];
         display_list->hwLayers[2].releaseFenceFd = fake_fence[5];
 
-        display_list->hwLayers[3].compositionType = HWC_FRAMEBUFFER_TARGET; 
-        display_list->hwLayers[3].flags = 0; 
-        display_list->hwLayers[3].handle = native_handle4.get(); 
+        display_list->hwLayers[3].compositionType = HWC_FRAMEBUFFER_TARGET;
+        display_list->hwLayers[3].flags = 0;
+        display_list->hwLayers[3].handle = native_handle4.get();
         display_list->hwLayers[3].transform = 0;
-        display_list->hwLayers[3].blending = HWC_BLENDING_NONE; 
-        display_list->hwLayers[3].displayFrame = {377, 233, 610, 337}; 
+        display_list->hwLayers[3].blending = HWC_BLENDING_NONE;
+        display_list->hwLayers[3].displayFrame = {377, 233, 610, 337};
         display_list->hwLayers[3].sourceCrop = {987, 610, 1597, 987};
         display_list->hwLayers[3].acquireFenceFd = fake_fence[6];
         display_list->hwLayers[3].releaseFenceFd = fake_fence[7];
@@ -254,25 +254,17 @@ TEST_F(HwcLogger, report_legacy_fb)
 
     mga::HwcFormattedLogger logger;
     logger.report_legacy_fb_module();
-    EXPECT_EQ(str.str(), test_stream.str()); 
+    EXPECT_EQ(str.str(), test_stream.str());
 }
 
 TEST_F(HwcLogger, report_hwc_version)
 {
     std::stringstream str;
-    str << "HWC version 1.0" << std::endl
-        << "HWC version 1.1" << std::endl
-        << "HWC version 1.2" << std::endl
-        << "HWC version 1.3" << std::endl
-        << "HWC version 1.4" << std::endl;
+    str << "HWC version" << std::endl;
 
     mga::HwcFormattedLogger logger;
-    logger.report_hwc_version(mga::HwcVersion::hwc10);
-    logger.report_hwc_version(mga::HwcVersion::hwc11);
-    logger.report_hwc_version(mga::HwcVersion::hwc12);
-    logger.report_hwc_version(mga::HwcVersion::hwc13);
-    logger.report_hwc_version(mga::HwcVersion::hwc14);
-    EXPECT_EQ(str.str(), test_stream.str()); 
+    logger.report_hwc_version();
+    EXPECT_EQ(str.str(), test_stream.str());
 }
 
 TEST_F(HwcLogger, report_power_mode)

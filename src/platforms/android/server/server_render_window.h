@@ -34,6 +34,7 @@ namespace android
 {
 
 class FramebufferBundle;
+class GrallocBuffer;
 class InterpreterResourceCache;
 class ServerRenderWindow : public AndroidDriverInterpreter
 {
@@ -43,7 +44,7 @@ public:
                        std::shared_ptr<InterpreterResourceCache> const&,
                        DeviceQuirks& quirks);
 
-    std::shared_ptr<graphics::android::NativeBuffer> driver_requests_buffer(int fence_fd) override;
+    std::shared_ptr<graphics::android::GrallocBuffer> driver_requests_buffer(int fence_fd) override;
     void driver_returns_buffer(ANativeWindowBuffer*, int fence_fd) override;
     void driver_cancels_buffer(ANativeWindowBuffer*, int fence_fd) override;
     void lock_buffer(ANativeWindowBuffer*) override;

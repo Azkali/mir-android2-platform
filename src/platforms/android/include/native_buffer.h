@@ -38,6 +38,8 @@ enum class BufferAccess
     write
 };
 
+class GrallocBuffer;
+
 class NativeBuffer : public graphics::NativeBufferBase
 {
 public:
@@ -61,6 +63,11 @@ protected:
     NativeBuffer(NativeBuffer const&) = delete;
     NativeBuffer& operator=(NativeBuffer const&) = delete;
 };
+
+android::GrallocBuffer* to_gralloc_buffer_checked(graphics::NativeBufferBase* buffer);
+std::shared_ptr<android::GrallocBuffer> to_gralloc_buffer_checked(
+    std::shared_ptr<graphics::NativeBufferBase> const& buffer);
+
 
 }
 }

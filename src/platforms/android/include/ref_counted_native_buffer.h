@@ -16,8 +16,8 @@
  * Authored by: Kevin DuBois <kevin.dubois@canonical.com>
  */
 
-#ifndef MIR_GRAPHICS_ANDROID_ANDROID_NATIVE_BUFFER_H_
-#define MIR_GRAPHICS_ANDROID_ANDROID_NATIVE_BUFFER_H_
+#ifndef MIR_GRAPHICS_ANDROID_REF_COUNTED_NATIVE_BUFFER_H_
+#define MIR_GRAPHICS_ANDROID_REF_COUNTED_NATIVE_BUFFER_H_
 
 #include "native_buffer.h"
 #include <memory>
@@ -31,34 +31,6 @@ class CommandStreamSync;
 namespace android
 {
 class Fence;
-
-struct AndroidNativeBuffer : public NativeBuffer
-{
-    AndroidNativeBuffer(
-        std::shared_ptr<ANativeWindowBuffer> const& handle,
-        std::shared_ptr<CommandStreamSync> const& cmdstream_sync,
-        std::shared_ptr<Fence> const& fence,
-        BufferAccess fence_access);
-
-    ANativeWindowBuffer* anwb() const;
-    buffer_handle_t handle() const;
-    NativeFence copy_fence() const;
-    NativeFence fence() const;
-
-    void ensure_available_for(BufferAccess);
-    bool ensure_available_for(android::BufferAccess intent, std::chrono::milliseconds timeout);
-    void update_usage(NativeFence& merge_fd, BufferAccess);
-    void reset_fence();
-
-    void lock_for_gpu();
-    void wait_for_unlock_by_gpu();
-
-private:
-    std::shared_ptr<CommandStreamSync> cmdstream_sync;
-    std::shared_ptr<Fence> fence_;
-    BufferAccess access;
-    std::shared_ptr<ANativeWindowBuffer> native_window_buffer;
-};
 
 struct RefCountedNativeBuffer : public ANativeWindowBuffer
 {
@@ -81,4 +53,4 @@ private:
 }
 }
 
-#endif /* MIR_GRAPHICS_ANDROID_ANDROID_NATIVE_BUFFER_H_ */
+#endif /* MIR_GRAPHICS_ANDROID_REF_COUNTED_NATIVE_BUFFER_H_ */

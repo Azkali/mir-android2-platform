@@ -34,10 +34,10 @@
 #include "mir/executor.h"
 #include "cmdstream_sync_factory.h"
 #include "sync_fence.h"
-#include "android_native_buffer.h"
+#include "ref_counted_native_buffer.h"
 #include "graphic_buffer_allocator.h"
 #include "gralloc_module.h"
-#include "buffer.h"
+#include "gralloc_buffer.h"
 #include "device_quirks.h"
 #include "egl_sync_fence.h"
 #include "android_format_conversion-inl.h"
@@ -101,8 +101,8 @@ mga::GraphicBufferAllocator::GraphicBufferAllocator(
     std::shared_ptr<CommandStreamSyncFactory> const& cmdstream_sync_factory,
     std::shared_ptr<DeviceQuirks> const& quirks)
     : hybris_gralloc(hybris_gralloc),
-    alloc_device(std::make_shared<mga::GrallocModule>(hybris_gralloc, cmdstream_sync_factory, quirks)),
     egl_extensions(std::make_shared<mg::EGLExtensions>()),
+    alloc_device(std::make_shared<mga::GrallocModule>(hybris_gralloc, cmdstream_sync_factory, quirks, egl_extensions)),
     cmdstream_sync_factory(cmdstream_sync_factory),
     quirks(quirks)
 {
@@ -116,13 +116,12 @@ void mga::GraphicBufferAllocator::set_ctx(mg::Display const& output) {
 std::shared_ptr<mg::Buffer> mga::GraphicBufferAllocator::alloc_framebuffer(
     geometry::Size size, MirPixelFormat pf)
 {
-    return std::make_shared<Buffer>(
-        hybris_gralloc,
-        alloc_device->alloc_buffer(
-            size,
-            mga::to_android_format(pf),
-            quirks->fb_gralloc_bits()),
-        egl_extensions);
+    auto gralloc_buffer = alloc_device->alloc_buffer(
+        size,
+        mga::to_android_format(pf),
+        quirks->fb_gralloc_bits());
+
+    return gralloc_buffer;
 }
 
 std::vector<MirPixelFormat> mga::GraphicBufferAllocator::supported_pixel_formats()
@@ -140,13 +139,12 @@ std::vector<MirPixelFormat> mga::GraphicBufferAllocator::supported_pixel_formats
 std::shared_ptr<mg::Buffer> mga::GraphicBufferAllocator::alloc_software_buffer(
     geometry::Size size, MirPixelFormat format)
 {
-    return std::shared_ptr<Buffer>(new Buffer(
-        hybris_gralloc,
-        alloc_device->alloc_buffer(
-            size,
-            mga::to_android_format(format),
-            mga::convert_to_android_usage(mg::BufferUsage::software)),
-        egl_extensions));
+    auto gralloc_buffer = alloc_device->alloc_buffer(
+        size,
+        mga::to_android_format(format),
+        mga::convert_to_android_usage(mg::BufferUsage::software));
+
+    return gralloc_buffer;
 }
 
 
@@ -513,7 +511,7 @@ auto mga::GLRenderingProvider::make_framebuffer_provider(mg::DisplaySink& /*sink
         {
             // For Android platform, we can create a simple framebuffer wrapper
             // that makes the Android Buffer look like a Framebuffer for HWC composition
-            if (auto android_buffer = std::dynamic_pointer_cast<mga::Buffer>(buffer))
+            if (auto android_buffer = std::dynamic_pointer_cast<GrallocBuffer>(buffer))
             {
                 return std::make_unique<AndroidFramebuffer>(android_buffer);
             }
@@ -527,7 +525,7 @@ auto mga::GLRenderingProvider::make_framebuffer_provider(mg::DisplaySink& /*sink
         class AndroidFramebuffer : public mg::Framebuffer
         {
         public:
-            AndroidFramebuffer(std::shared_ptr<mga::Buffer> buffer)
+            AndroidFramebuffer(std::shared_ptr<GrallocBuffer> buffer)
                 : buffer{std::move(buffer)}
             {
             }
@@ -538,10 +536,10 @@ auto mga::GLRenderingProvider::make_framebuffer_provider(mg::DisplaySink& /*sink
             }
 
             // Get the underlying Android buffer for HWC composition
-            std::shared_ptr<mga::Buffer> get_buffer() const { return buffer; }
+            std::shared_ptr<GrallocBuffer> get_buffer() const { return buffer; }
 
         private:
-            std::shared_ptr<mga::Buffer> const buffer;
+            std::shared_ptr<GrallocBuffer> const buffer;
         };
     };
 

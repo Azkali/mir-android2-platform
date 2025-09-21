@@ -19,7 +19,6 @@
 #ifndef MIR_GRAPHICS_ANDROID_DRIVER_INTERPRETER_H_
 #define MIR_GRAPHICS_ANDROID_DRIVER_INTERPRETER_H_
 
-#include "native_buffer.h"
 #include <system/window.h>
 #include "mir/geometry/size.h"
 #include "mir/geometry/rectangles.h"
@@ -31,10 +30,12 @@ namespace graphics
 {
 namespace android
 {
+class GrallocBuffer;
+
 class AndroidDriverInterpreter
 {
 public:
-    virtual std::shared_ptr<NativeBuffer> driver_requests_buffer(int fence) = 0;
+    virtual std::shared_ptr<GrallocBuffer> driver_requests_buffer(int fence) = 0;
     virtual void driver_returns_buffer(ANativeWindowBuffer*, int fence) = 0;
     virtual void driver_cancels_buffer(ANativeWindowBuffer*, int fence) = 0;
     virtual void lock_buffer(ANativeWindowBuffer*) = 0;

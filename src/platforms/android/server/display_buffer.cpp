@@ -17,7 +17,6 @@
  */
 
 #include "mir/graphics/transformation.h"
-#include <iostream>
 #include "framebuffer_bundle.h"
 #include "display_buffer.h"
 #include "display_device.h"

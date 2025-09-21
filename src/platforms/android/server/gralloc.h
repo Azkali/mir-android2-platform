@@ -28,11 +28,11 @@ namespace graphics
 {
 namespace android
 {
-class NativeBuffer;
+class GrallocBuffer;
 class Gralloc
 {
 public:
-    virtual std::shared_ptr<NativeBuffer> alloc_buffer(
+    virtual std::shared_ptr<GrallocBuffer> alloc_buffer(
         geometry::Size size, uint32_t android_format, uint32_t usage_bitmask) = 0;
 protected:
     Gralloc() = default;

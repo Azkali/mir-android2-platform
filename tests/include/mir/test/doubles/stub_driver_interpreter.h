@@ -42,7 +42,7 @@ public:
     {
     }
 
-    std::shared_ptr<mir::graphics::android::NativeBuffer> driver_requests_buffer(int) override
+    std::shared_ptr<mir::graphics::android::GrallocBuffer> driver_requests_buffer(int) override
     {
         return nullptr;
     }

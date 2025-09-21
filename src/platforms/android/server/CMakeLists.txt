@@ -5,7 +5,7 @@ set(symbol_map ${CMAKE_CURRENT_BINARY_DIR}/symbols.map)
 add_library(mirplatformgraphicsandroidobjects OBJECT
   platform.cpp
   graphic_buffer_allocator.cpp
-  buffer.cpp
+  gralloc_buffer.cpp
   display.cpp
   display_configuration.cpp
   display_buffer.cpp

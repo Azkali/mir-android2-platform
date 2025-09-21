@@ -22,7 +22,7 @@
 #include "mir/renderer/gl/context.h"
 #include "hwc_fallback_gl_renderer.h"
 #include "swapping_gl_context.h"
-#include "buffer.h"
+#include "gralloc_buffer.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_PRECISION_MEDIUMP_FLOAT

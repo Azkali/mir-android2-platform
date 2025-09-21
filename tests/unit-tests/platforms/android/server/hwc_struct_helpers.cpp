@@ -18,7 +18,7 @@
 
 #include <hardware/hwcomposer.h>
 #include "hwc_struct_helpers.h"
-#include "native_buffer.h"
+#include "gralloc_buffer.h"
 
 void PrintTo(const hwc_rect_t& rect, ::std::ostream* os)
 {
@@ -55,12 +55,12 @@ void mir::test::fill_hwc_layer(
     mir::graphics::Buffer& buffer,
     int type, int flags)
 {
-    auto native = dynamic_cast<mir::graphics::android::Buffer>(&buffer)->native_buffer_handle();
+    auto gralloc_buffer = dynamic_cast<mir::graphics::android::GrallocBuffer*>(&buffer);
     *visible_rect = {0, 0, buffer.size().width.as_int(), buffer.size().height.as_int()};
     layer.compositionType = type;
     layer.hints = 0;
     layer.flags = flags;
-    layer.handle = native->handle();
+    layer.handle = gralloc_buffer->handle();
     layer.transform = 0;
     layer.blending = HWC_BLENDING_NONE;
     layer.sourceCrop = *visible_rect;

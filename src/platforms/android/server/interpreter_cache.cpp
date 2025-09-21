@@ -17,7 +17,7 @@
  */
 
 #include "sync_fence.h"
-#include "native_buffer.h"
+#include "gralloc_buffer.h"
 #include "interpreter_cache.h"
 #include <boost/throw_exception.hpp>
 #include <stdexcept>
@@ -26,7 +26,7 @@ namespace mg = mir::graphics;
 namespace mga=mir::graphics::android;
 
 void mga::InterpreterCache::store_buffer(std::shared_ptr<mg::Buffer>const& buffer,
-    std::shared_ptr<mga::NativeBuffer> const& key)
+    std::shared_ptr<mga::GrallocBuffer> const& key)
 {
     native_buffers[key->anwb()] = key;
     buffers_in_driver[key->anwb()] = buffer;

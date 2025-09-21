@@ -19,7 +19,11 @@
 #ifndef MIR_TEST_DOUBLES_STUB_ANDROID_NATIVE_BUFFER_H_
 #define MIR_TEST_DOUBLES_STUB_ANDROID_NATIVE_BUFFER_H_
 
-#include "src/platforms/android/include/native_buffer.h"
+#include "src/platforms/android/include/gralloc_buffer.h"
+#include "src/platforms/android/include/hybris_gralloc.h"
+#include "src/platforms/android/include/fence.h"
+#include "src/platforms/android/include/command_stream_sync.h"
+#include "mir/graphics/egl_extensions.h"
 #include "mir/geometry/size.h"
 
 namespace mir
@@ -28,13 +32,27 @@ namespace test
 {
 namespace doubles
 {
-struct StubAndroidNativeBuffer : public graphics::android::NativeBuffer
+struct StubAndroidNativeBuffer : public graphics::android::GrallocBuffer
 {
     StubAndroidNativeBuffer()
+        : GrallocBuffer(
+            std::make_shared<graphics::android::HybrisGralloc>(),
+            std::make_shared<ANativeWindowBuffer>(),
+            std::make_shared<graphics::CommandStreamSync>(),
+            std::make_shared<graphics::android::Fence>(),
+            graphics::android::BufferAccess::read,
+            std::make_shared<graphics::EGLExtensions>())
     {
     }
 
     StubAndroidNativeBuffer(geometry::Size sz)
+        : GrallocBuffer(
+            std::make_shared<graphics::android::HybrisGralloc>(),
+            std::make_shared<ANativeWindowBuffer>(),
+            std::make_shared<graphics::CommandStreamSync>(),
+            std::make_shared<graphics::android::Fence>(),
+            graphics::android::BufferAccess::read,
+            std::make_shared<graphics::EGLExtensions>())
     {
         stub_anwb.width = sz.width.as_int();
         stub_anwb.height = sz.height.as_int();

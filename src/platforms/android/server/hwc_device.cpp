@@ -22,14 +22,13 @@
 #include "hwc_layerlist.h"
 #include "hwc_wrapper.h"
 #include "framebuffer_bundle.h"
-#include "buffer.h"
+#include "gralloc_buffer.h"
 #include "hwc_fallback_gl_renderer.h"
 #include "mir/raii.h"
 #include <limits>
 #include <algorithm>
 #include <chrono>
 #include <thread>
-#include <iostream>
 
 namespace mg = mir::graphics;
 namespace mga=mir::graphics::android;

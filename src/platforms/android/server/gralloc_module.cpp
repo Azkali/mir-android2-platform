@@ -18,12 +18,13 @@
  */
 
 #include "egl_sync_fence.h"
-#include "android_native_buffer.h"
+#include "gralloc_buffer.h"
 #include "sync_fence.h"
 #include "android_format_conversion-inl.h"
 #include "gralloc_module.h"
 #include "device_quirks.h"
 #include "cmdstream_sync_factory.h"
+#include "ref_counted_native_buffer.h"
 
 #include <boost/throw_exception.hpp>
 #include <boost/exception/errinfo_errno.hpp>
@@ -53,14 +54,16 @@ private:
 mga::GrallocModule::GrallocModule(
     std::shared_ptr<HybrisGralloc> const& hybris_gralloc,
     std::shared_ptr<CommandStreamSyncFactory> const& sync_factory,
-    std::shared_ptr<DeviceQuirks> const& quirks) :
+    std::shared_ptr<DeviceQuirks> const& quirks,
+    std::shared_ptr<mir::graphics::EGLExtensions> const& egl_extensions) :
     hybris_gralloc(hybris_gralloc),
     sync_factory(sync_factory),
-    quirks(quirks)
+    quirks(quirks),
+    egl_extensions(egl_extensions)
 {
 }
 
-std::shared_ptr<mga::NativeBuffer> mga::GrallocModule::alloc_buffer(
+std::shared_ptr<mga::GrallocBuffer> mga::GrallocModule::alloc_buffer(
     geometry::Size size, uint32_t format, uint32_t usage_flag)
 {
     buffer_handle_t buf_handle = NULL;
@@ -97,7 +100,9 @@ std::shared_ptr<mga::NativeBuffer> mga::GrallocModule::alloc_buffer(
     anwb->format = format;
     anwb->usage = usage_flag;
 
-    return std::make_shared<mga::AndroidNativeBuffer>(anwb,
+    return std::make_shared<mga::GrallocBuffer>(hybris_gralloc,
+        anwb,
         sync_factory->create_command_stream_sync(),
-        fence, mga::BufferAccess::read);
+        fence, mga::BufferAccess::read,
+        egl_extensions);
 }

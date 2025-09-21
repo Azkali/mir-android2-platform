@@ -18,11 +18,10 @@
 
 #include "mir/graphics/frame.h"
 #include "real_hwc2_wrapper.h"
-#include <iostream>
 #include "hwc_layerlist.h"
 #include "swapping_gl_context.h"
 #include "native_buffer.h"
-#include "buffer.h"
+#include "gralloc_buffer.h"
 #include "hwc_report.h"
 #include "display_device_exceptions.h"
 #include <boost/throw_exception.hpp>
@@ -296,7 +295,7 @@ void mga::RealHwc2Wrapper::set(
             }
 
             auto acquire_fence_fd = fblayer.acquireFenceFd;
-            auto native_buffer = std::dynamic_pointer_cast<mga::Buffer>(buffer)->native_buffer_handle();
+            auto native_buffer = mga::to_gralloc_buffer_checked(static_cast<mga::NativeBuffer*>(buffer->native_buffer_base()));
 
             hwc2_compat_display_set_client_target(hwc2_display, /* slot */0, native_buffer->anwb(),
                                                 acquire_fence_fd,
@@ -340,8 +339,8 @@ void mga::RealHwc2Wrapper::set(
 
             // Assign the present fence obtained from the HWC2 present call to guard access to the previous frame buffer
             if (onscreen_client_target_buffers.find(display_id) != onscreen_client_target_buffers.end()) {
-                auto previous_buffer = std::dynamic_pointer_cast<mga::Buffer>(onscreen_client_target_buffers[display_id]);
-                auto previous_native_buffer = previous_buffer->native_buffer_handle();
+                auto& previous_buffer = onscreen_client_target_buffers[display_id];
+                auto previous_native_buffer = mga::to_gralloc_buffer_checked(static_cast<mga::NativeBuffer*>(previous_buffer->native_buffer_base()));
                 previous_native_buffer->update_usage(presentFence, mga::BufferAccess::read);
             } else {
                 close(presentFence);

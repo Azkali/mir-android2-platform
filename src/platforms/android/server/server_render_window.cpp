@@ -22,7 +22,7 @@
 #include "android_format_conversion-inl.h"
 #include "server_render_window.h"
 #include "framebuffer_bundle.h"
-#include "buffer.h"
+#include "gralloc_buffer.h"
 #include "interpreter_resource_cache.h"
 
 #include <system/window.h>
@@ -46,17 +46,22 @@ mga::ServerRenderWindow::ServerRenderWindow(
 {
 }
 
-std::shared_ptr<mga::NativeBuffer> mga::ServerRenderWindow::driver_requests_buffer(int fence)
+std::shared_ptr<mga::GrallocBuffer> mga::ServerRenderWindow::driver_requests_buffer(int fence)
 {
-    auto buffer = dynamic_pointer_cast<mga::Buffer>(fb_bundle->buffer_for_render());
-    auto handle = buffer->native_buffer_handle();
+    auto buffer = fb_bundle->buffer_for_render();
+    auto gralloc_buffer = std::dynamic_pointer_cast<mga::GrallocBuffer>(buffer);
+    if (!gralloc_buffer)
+    {
+        BOOST_THROW_EXCEPTION(std::invalid_argument("Expected GrallocBuffer"));
+    }
+
     if (fence >= 0)
     {
-        handle->reset_fence();
-        handle->update_usage(fence, mga::BufferAccess::write);
+        gralloc_buffer->reset_fence();
+        gralloc_buffer->update_usage(fence, mga::BufferAccess::write);
     }
-    resource_cache->store_buffer(buffer, handle);
-    return handle;
+    resource_cache->store_buffer(buffer, gralloc_buffer);
+    return gralloc_buffer;
 }
 
 void mga::ServerRenderWindow::driver_returns_buffer(ANativeWindowBuffer* buffer, int fence_fd)

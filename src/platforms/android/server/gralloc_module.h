@@ -21,6 +21,7 @@
 #include "gralloc.h"
 
 #include "hybris_gralloc.h"
+#include "mir/graphics/egl_extensions.h"
 
 #include <hardware/gralloc.h>
 #include <memory>
@@ -34,6 +35,7 @@ namespace android
 {
 class DeviceQuirks;
 class CommandStreamSyncFactory;
+class GrallocBuffer;
 
 class GrallocModule : public Gralloc
 {
@@ -41,14 +43,16 @@ public:
     explicit GrallocModule(
         std::shared_ptr<HybrisGralloc> const& hybris_gralloc,
         std::shared_ptr<CommandStreamSyncFactory> const& cmdstream_sync_factory,
-        std::shared_ptr<DeviceQuirks> const& quirks);
-    std::shared_ptr<NativeBuffer> alloc_buffer(geometry::Size,
+        std::shared_ptr<DeviceQuirks> const& quirks,
+        std::shared_ptr<mir::graphics::EGLExtensions> const& egl_extensions);
+    std::shared_ptr<GrallocBuffer> alloc_buffer(geometry::Size,
         uint32_t android_format, uint32_t usage_bitmask) override;
 
 private:
     std::shared_ptr<HybrisGralloc> hybris_gralloc;
     std::shared_ptr<CommandStreamSyncFactory> const sync_factory;
     std::shared_ptr<DeviceQuirks> const quirks;
+    std::shared_ptr<mir::graphics::EGLExtensions> const egl_extensions;
     unsigned int convert_to_android_usage(BufferUsage usage);
 };
 

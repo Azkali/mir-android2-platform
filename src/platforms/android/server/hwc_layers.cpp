@@ -19,8 +19,7 @@
 #include "mir/graphics/renderable.h"
 #include "mir/graphics/buffer.h"
 #include "sync_fence.h"
-#include "native_buffer.h"
-#include "buffer.h"
+#include "gralloc_buffer.h"
 #include "hwc_layerlist.h"
 
 #include <limits>
@@ -138,7 +137,7 @@ mga::HWCLayer::HWCLayer(
     LayerType type,
     geometry::Rectangle const& position,
     bool alpha_enabled,
-    std::shared_ptr<mg::Buffer> const& buffer) :
+    std::shared_ptr<Buffer> const& buffer) :
     HWCLayer(layer_adapter, list, layer_index)
 {
     setup_layer(type, position, alpha_enabled, buffer);
@@ -158,7 +157,7 @@ void mga::HWCLayer::release_buffer()
 {
     if ((hwc_layer->compositionType != HWC_FRAMEBUFFER) && associated_buffer)
     {
-        auto native_buffer = std::dynamic_pointer_cast<mga::Buffer>(associated_buffer)->native_buffer_handle();
+        auto native_buffer = mga::to_gralloc_buffer_checked(static_cast<mga::NativeBuffer*>(associated_buffer->native_buffer_base()));
         native_buffer->update_usage(hwc_layer->releaseFenceFd, mga::BufferAccess::read);
         hwc_layer->releaseFenceFd = -1;
         hwc_layer->acquireFenceFd = -1;
@@ -175,7 +174,7 @@ bool mga::HWCLayer::setup_layer(
     LayerType type,
     geometry::Rectangle const& position,
     bool alpha_enabled,
-    std::shared_ptr<mg::Buffer> const& buffer)
+    std::shared_ptr<Buffer> const& buffer)
 {
     if (type != mga::LayerType::skip)
         associated_buffer = buffer;
@@ -229,7 +228,8 @@ bool mga::HWCLayer::setup_layer(
      * This buffer might or might not be an Android buffer, but if it is, we'll
      * have another signal to see if we need to commit or not.
      */
-    if (auto native_buffer = std::dynamic_pointer_cast<mga::Buffer>(buffer)->native_buffer_handle()) {
+    if (auto native_buffer =
+            dynamic_cast<mga::GrallocBuffer*>(buffer.get())) {
         needs_commit |= (hwc_layer->handle != native_buffer->handle());
         hwc_layer->handle = native_buffer->handle();
     }
@@ -246,7 +246,7 @@ void mga::HWCLayer::set_acquirefence()
     //we disregard fences that haven't changed, as the hwc will still own the buffer
     if (!needs_gl_render() && associated_buffer)
     {
-        auto native_buffer = std::dynamic_pointer_cast<mga::Buffer>(associated_buffer)->native_buffer_handle();
+        auto native_buffer = mga::to_gralloc_buffer_checked(static_cast<mga::NativeBuffer*>(associated_buffer->native_buffer_base()));
         hwc_layer->acquireFenceFd = native_buffer->copy_fence();
     }
 }

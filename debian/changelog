@@ -1,3 +1,9 @@
+mir-android2-platform (2.20.0) UNRELEASED; urgency=medium
+
+  * Compile against mir2
+
+ -- Azkali Manad <a.ffcc7@gmail.com>  Tue, 18 Nov 2025 09:57:00 +0000
+
 mir-android2-platform (1.8.0) UNRELEASED; urgency=medium
 
   * Rename the package to mir-android2-platform

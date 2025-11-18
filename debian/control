@@ -24,15 +24,14 @@ Build-Depends: cmake,
                valgrind [amd64 i386 armhf arm64],
                abi-compliance-checker,
                python3:any,
-               libmir1common-dev,
-               libmir1platform-dev,
-               libmir1core-dev,
-               libmir1renderer-dev,
-               libmir1server-dev,
-               libmir1client-dev,
-               libmir1al-dev,
-               mir1-renderer-gl-dev,
-               mir1test-dev,
+               libmircommon-dev,
+               libmirplatform-dev,
+               libmircore-dev,
+               libmirrenderer-dev,
+               libmirserver-dev,
+               libmiral-dev,
+               mir-renderer-gl-dev,
+               mirtest-dev,
                libcapnp-dev,
                liblttng-ust-dev,
                libudev-dev,
@@ -46,7 +45,7 @@ Homepage: https://gitlab.com/ubports/development/core/hybris-support/mir-android
 Vcs-Git: https://gitlab.com/ubports/development/core/hybris-support/mir-android2-platform.git
 Vcs-Browser: https://gitlab.com/ubports/development/core/hybris-support/mir-android2-platform
 
-Package: mir1-android2-tests
+Package: mir-android2-tests
 Architecture: i386 amd64 armhf arm64
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends},
@@ -58,7 +57,7 @@ Description: Display Server for Ubuntu - android platform diagnostics utility
  .
  Contains unit tests
 
-Package: mir1-platform-graphics-android2-16
+Package: mir-platform-graphics-android2-23
 Section: libs
 Architecture: i386 amd64 armhf arm64
 Multi-Arch: same
@@ -72,29 +71,14 @@ Description: Display server for Ubuntu - platform library for Android
  Contains the shared libraries required for the Mir server to interact with
  the hardware platform using the Android drivers.
 
-Package: mir1-client-platform-android2-5
+Package: mir-graphics-drivers-android2
 Section: libs
 Architecture: i386 amd64 armhf arm64
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends},
-         ${shlibs:Depends}
-Description: Display server for Ubuntu - client platform library for Android
- Mir is a display server running on linux systems, with a focus on efficiency,
- robust operation and a well-defined driver model.
- .
- Contains the shared libraries required for the Mir clients to interact with
- the underlying hardware platform using the Android drivers.
-
-Package: mir1-graphics-drivers-android2
-Section: libs
-Architecture: i386 amd64 armhf arm64
-Multi-Arch: same
-Pre-Depends: ${misc:Pre-Depends}
-Depends: ${misc:Depends},
-         mir1-platform-graphics-android2-16,
-         mir1-client-platform-android2-5,
-         mir1-platform-input-evdev7,
+         mir-platform-graphics-android2-23,
+         mir-platform-input-evdev10,
 Description: Display server for Ubuntu - android driver metapackage
  Mir is a display server running on linux systems, with a focus on efficiency,
  robust operation and a well-defined driver model.

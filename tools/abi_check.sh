@@ -3,7 +3,6 @@
 set -e
 
 declare -A abi_var_for=(\
-    ["mirclientplatformandroid"]="MIR_CLIENT_PLATFORM_ABI" \
     ["mirplatformgraphicsandroid"]="MIR_SERVER_GRAPHICS_PLATFORM_ABI" )
 
 declare -A libtype=(\

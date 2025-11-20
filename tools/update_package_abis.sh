@@ -10,8 +10,7 @@ then
 fi
 
 packages="\
-    mir1-client-platform-android2-:MIR_CLIENT_PLATFORM_ABI \
-    mir1-platform-graphics-android2-:MIR_SERVER_GRAPHICS_PLATFORM_ABI"
+    mir-platform-graphics-android2-:MIR_SERVER_GRAPHICS_PLATFORM_ABI"
 
 package_name()
 {

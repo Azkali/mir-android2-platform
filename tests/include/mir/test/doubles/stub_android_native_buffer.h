@@ -32,14 +32,40 @@ namespace test
 {
 namespace doubles
 {
+struct StubCommandStreamSync : public graphics::CommandStreamSync
+{
+    void raise() override {}
+    void reset() override {}
+    bool wait_for(std::chrono::nanoseconds) override { return true; }
+};
+
+struct StubFence : public graphics::android::Fence
+{
+    void wait() override {}
+    bool wait_for(std::chrono::milliseconds) override { return true; }
+    void reset_fence() override {}
+    void merge_with(graphics::android::NativeFence&) override {}
+    graphics::android::NativeFence copy_native_handle() const override { return -1; }
+    graphics::android::NativeFence native_handle() const override { return -1; }
+};
+
+struct StubHybrisGralloc : public graphics::android::HybrisGralloc
+{
+    int release(buffer_handle_t, bool) override { return 0; }
+    int importBuffer(buffer_handle_t, buffer_handle_t&) override { return 0; }
+    int allocate(int, int, int, int, buffer_handle_t&, uint32_t&) override { return 0; }
+    int lock(buffer_handle_t, int, int, int, int, int, void*&) override { return 0; }
+    int unlock(buffer_handle_t) override { return 0; }
+};
+
 struct StubAndroidNativeBuffer : public graphics::android::GrallocBuffer
 {
     StubAndroidNativeBuffer()
         : GrallocBuffer(
-            std::make_shared<graphics::android::HybrisGralloc>(),
+            std::make_shared<StubHybrisGralloc>(),
             std::make_shared<ANativeWindowBuffer>(),
-            std::make_shared<graphics::CommandStreamSync>(),
-            std::make_shared<graphics::android::Fence>(),
+            std::make_shared<StubCommandStreamSync>(),
+            std::make_shared<StubFence>(),
             graphics::android::BufferAccess::read,
             std::make_shared<graphics::EGLExtensions>())
     {
@@ -47,10 +73,10 @@ struct StubAndroidNativeBuffer : public graphics::android::GrallocBuffer
 
     StubAndroidNativeBuffer(geometry::Size sz)
         : GrallocBuffer(
-            std::make_shared<graphics::android::HybrisGralloc>(),
+            std::make_shared<StubHybrisGralloc>(),
             std::make_shared<ANativeWindowBuffer>(),
-            std::make_shared<graphics::CommandStreamSync>(),
-            std::make_shared<graphics::android::Fence>(),
+            std::make_shared<StubCommandStreamSync>(),
+            std::make_shared<StubFence>(),
             graphics::android::BufferAccess::read,
             std::make_shared<graphics::EGLExtensions>())
     {
@@ -58,10 +84,10 @@ struct StubAndroidNativeBuffer : public graphics::android::GrallocBuffer
         stub_anwb.height = sz.height.as_int();
     }
 
-    auto anwb() const -> ANativeWindowBuffer* override { return const_cast<ANativeWindowBuffer*>(&stub_anwb); }
-    auto handle() const -> buffer_handle_t override { return native_handle.get(); }
-    auto copy_fence() const -> graphics::android::NativeFence override { return -1; }
-    auto fence() const -> graphics::android::NativeFence override { return -1; }
+    ANativeWindowBuffer* anwb() const { return const_cast<ANativeWindowBuffer*>(&stub_anwb); }
+    buffer_handle_t handle() const { return native_handle.get(); }
+    graphics::android::NativeFence copy_fence() const { return -1; }
+    graphics::android::NativeFence fence() const { return -1; }
 
     void ensure_available_for(graphics::android::BufferAccess) {}
     bool ensure_available_for(graphics::android::BufferAccess, std::chrono::milliseconds) { return true; }

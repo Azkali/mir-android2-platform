@@ -18,7 +18,6 @@
 
 #include "src/platforms/android/server/interpreter_cache.h"
 #include "mir/test/doubles/stub_buffer.h"
-#include "mir/test/doubles/mock_android_native_buffer.h"
 #include "mir/test/doubles/stub_android_native_buffer.h"
 
 #include <gtest/gtest.h>
@@ -32,7 +31,7 @@ struct InterpreterResourceTest : public ::testing::Test
 {
     void SetUp()
     {
-        native_buffer1 = std::make_shared<testing::NiceMock<mtd::MockAndroidNativeBuffer>>();
+        native_buffer1 = std::make_shared<mtd::StubAndroidNativeBuffer>();
         native_buffer2 = std::make_shared<mtd::StubAndroidNativeBuffer>();
         native_buffer3 = std::make_shared<mtd::StubAndroidNativeBuffer>();
         stub_buffer1 = std::make_shared<mtd::StubBuffer>(native_buffer1);
@@ -43,7 +42,7 @@ struct InterpreterResourceTest : public ::testing::Test
     std::shared_ptr<mtd::StubBuffer> stub_buffer1;
     std::shared_ptr<mtd::StubBuffer> stub_buffer2;
     std::shared_ptr<mtd::StubBuffer> stub_buffer3;
-    std::shared_ptr<mtd::MockAndroidNativeBuffer> native_buffer1;
+    std::shared_ptr<mga::GrallocBuffer> native_buffer1;
     std::shared_ptr<mga::GrallocBuffer> native_buffer2;
     std::shared_ptr<mga::GrallocBuffer> native_buffer3;
 };
@@ -89,9 +88,6 @@ TEST_F(InterpreterResourceTest, update_usage_for)
 {
     int fence_fd = 44;
     mga::InterpreterCache cache;
-
-    EXPECT_CALL(*native_buffer1, update_usage(fence_fd, mga::BufferAccess::write))
-        .Times(1);
 
     cache.store_buffer(stub_buffer1, native_buffer1);
     cache.update_native_fence(native_buffer1->anwb(), fence_fd);

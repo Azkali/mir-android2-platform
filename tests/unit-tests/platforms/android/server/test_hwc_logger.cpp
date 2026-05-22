@@ -130,7 +130,7 @@ TEST_F(HwcLogger, report_pre_prepare)
         << " 2 | external | FORCE_GL  | {  55,  34,  89,  55} | { 144,  89, 233, 144} | ROT_270   | COVERAGE | " << std::endl
         << " 3 | external | FB_TARGET | { 377, 233, 610, 337} | { 987, 610,1597, 987} | NONE      | NONE     | " << std::endl;
     mga::HwcFormattedLogger logger;
-    logger.set_version(mga::HwcVersion::hwc12);
+    logger.set_version();
     logger.report_list_submitted_to_prepare(display_list);
     EXPECT_EQ(str.str(), test_stream.str()); 
 }

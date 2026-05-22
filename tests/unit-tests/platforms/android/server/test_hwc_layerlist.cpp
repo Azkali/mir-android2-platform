@@ -57,7 +57,7 @@ struct LayerListTest : public testing::Test
     geom::Rectangle const disp_frame{{0,0}, {44,22}};
     std::shared_ptr<mtd::StubBuffer> stub_fb{
         std::make_shared<mtd::StubBuffer>(
-            std::make_shared<testing::NiceMock<mtd::MockAndroidNativeBuffer>>(disp_frame.size), disp_frame.size)};
+            std::make_shared<mtd::StubAndroidNativeBuffer>(disp_frame.size), disp_frame.size)};
     hwc_layer_1_t fbtarget;
     hwc_layer_1_t skip;
     hwc_rect_t visible_rect;
